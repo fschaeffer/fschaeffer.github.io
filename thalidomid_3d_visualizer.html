@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thalidomid (Contergan) 3D Molekül-Visualisierung</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #e2e8f0;
+            overflow: hidden;
+            margin: 0;
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom Glassmorphism Styling */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glass-button {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-button:hover {
+            background: rgba(51, 65, 85, 0.85);
+            border-color: rgba(56, 189, 248, 0.5);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+            transform: translateY(-1px);
+        }
+        .glass-button.active {
+            background: rgba(14, 165, 233, 0.25);
+            border-color: #38bdf8;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.5);
+        }
+        /* Pulse Animation */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); }
+        }
+        .chiral-glow {
+            animation: pulse-glow 2s infinite;
+        }
+        #tooltip {
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.1s ease;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen select-none">
+
+    <!-- Canvas for 3D Scene -->
+    <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+    <!-- UI Overlay Layer -->
+    <div class="relative z-10 w-full h-full flex flex-col justify-between pointer-events-none p-4 md:p-6">
+        
+        <!-- Top Header Bar -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pointer-events-auto">
+            <div class="glass-panel p-4 rounded-2xl flex items-center gap-4 border-l-4 border-l-sky-500">
+                <div class="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400 font-bold text-xl">
+                    <i class="fa-solid fa-flask-vial"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide text-white flex items-center gap-2">
+                        Thalidomid <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-normal border border-slate-700">C₁₃H₁₀N₂O₄</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Historischer Arzneistoff (Contergan) & Enantiomeren-Chiralität</p>
+                </div>
+            </div>
+
+            <!-- Controls Toolbar Top -->
+            <div class="glass-panel p-2 rounded-2xl flex items-center gap-2">
+                <button id="btn-assemble" class="glass-button active px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 text-sky-300">
+                    <i class="fa-solid fa-cubes-stacked"></i> <span>Zusammenbauen</span>
+                </button>
+                <button id="btn-disassemble" class="glass-button px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 text-slate-300">
+                    <i class="fa-solid fa-atom"></i> <span>Zerlegen</span>
+                </button>
+                <div class="w-px h-6 bg-slate-700 mx-1"></div>
+                <button id="btn-reset-view" class="glass-button p-2.5 rounded-xl text-slate-300 hover:text-white" title="Kamera zurücksetzen">
+                    <i class="fa-solid fa-arrows-to-dot"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Middle Hover Tooltip (3D Anchor/Mouse Float) -->
+        <div id="tooltip" class="fixed hidden glass-panel px-3 py-2 rounded-xl text-xs z-50 transform -translate-x-1/2 -translate-y-full mb-3 shadow-2xl border-sky-500/30">
+            <div id="tooltip-atom-type" class="font-bold text-sky-400">Kohlenstoff (C)</div>
+            <div id="tooltip-atom-details" class="text-slate-300 text-[10px] code-font">ID: #01 | Valenz: 4</div>
+        </div>
+
+        <!-- Center Overlay for Chiral Warning Badge -->
+        <div id="chiral-badge" class="self-center glass-panel px-5 py-2.5 rounded-full border border-amber-500/40 text-amber-300 text-xs font-medium flex items-center gap-2 transition-all duration-300 opacity-90 backdrop-blur-md">
+            <i class="fa-solid fa-dna text-amber-400 animate-spin" style="animation-duration: 8s;"></i>
+            <span id="chiral-text">Aktuelles Enantiomer: <strong>(R)-Thalidomid</strong> (Sedierend)</span>
+        </div>
+
+        <!-- Bottom Dashboard / Panels -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 pointer-events-auto items-end">
+            
+            <!-- Left Panel: Rendering & Stereochemie Control -->
+            <div class="lg:col-span-4 glass-panel p-4 rounded-2xl space-y-4 max-h-[40vh] lg:max-h-none overflow-y-auto">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-sky-400"></i> Steuerung & Modi
+                    </span>
+                    <span class="text-[10px] text-slate-500 code-font">3D Engine</span>
+                </div>
+
+                <!-- Enantiomer Selector -->
+                <div>
+                    <label class="text-xs text-slate-300 block mb-2 font-medium">Stereoisomer (Chiralität):</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btn-enantiomer-r" class="glass-button active p-2.5 rounded-xl text-left border-l-2 border-l-emerald-500">
+                            <div class="text-xs font-bold text-white">(R)-Thalidomid</div>
+                            <div class="text-[10px] text-emerald-400">Sedativum / Schlafmittel</div>
+                        </button>
+                        <button id="btn-enantiomer-s" class="glass-button p-2.5 rounded-xl text-left border-l-2 border-l-rose-500">
+                            <div class="text-xs font-bold text-white">(S)-Thalidomid</div>
+                            <div class="text-[10px] text-rose-400">Teratogen (Fruchtschädigend)</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Render Style Selector -->
+                <div>
+                    <label class="text-xs text-slate-300 block mb-2 font-medium">Darstellungsmodus:</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button id="mode-ballstick" class="glass-button active py-2 rounded-xl text-xs font-medium text-center text-slate-200">
+                            Ball & Stick
+                        </button>
+                        <button id="mode-spacefill" class="glass-button py-2 rounded-xl text-xs font-medium text-center text-slate-200">
+                            Kalotte (CPK)
+                        </button>
+                        <button id="mode-wireframe" class="glass-button py-2 rounded-xl text-xs font-medium text-center text-slate-200">
+                            Drahtmodell
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Toggle Options -->
+                <div class="flex items-center justify-between pt-1">
+                    <label class="text-xs text-slate-300 cursor-pointer flex items-center gap-2">
+                        <input type="checkbox" id="toggle-chiral-highlight" checked class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0">
+                        Chirales Zentrum hervorheben
+                    </label>
+                    <label class="text-xs text-slate-300 cursor-pointer flex items-center gap-2">
+                        <input type="checkbox" id="toggle-autorotate" checked class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0">
+                        Auto-Rotation
+                    </label>
+                </div>
+            </div>
+
+            <!-- Center Panel: Selected Atom Inspector -->
+            <div id="atom-inspector" class="lg:col-span-3 glass-panel p-4 rounded-2xl flex flex-col justify-between hidden lg:flex h-full min-h-[180px]">
+                <div>
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-microscope text-sky-400"></i> Atom-Inspektor
+                        </span>
+                        <span id="insp-symbol" class="text-xs font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 code-font">Select</span>
+                    </div>
+                    <div id="insp-content" class="space-y-1.5 text-xs text-slate-300">
+                        <p class="text-slate-400 italic">Bewege den Mauszeiger über ein Atom oder klicke es an, um physikalische Parameter zu sehen.</p>
+                    </div>
+                </div>
+                <div class="text-[10px] text-slate-500 code-font pt-2 border-t border-slate-800/50 flex justify-between">
+                    <span>CPK Standardfarben</span>
+                    <span>3D Realtime</span>
+                </div>
+            </div>
+
+            <!-- Right Panel: Medical & Chemical Info -->
+            <div class="lg:col-span-5 glass-panel p-4 rounded-2xl space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-book-medical text-rose-400"></i> Medizinischer & Historischer Kontext
+                    </span>
+                    <span class="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-medium">Contergan (1957–1961)</span>
+                </div>
+                
+                <div class="text-xs text-slate-300 space-y-2 leading-relaxed max-h-[140px] overflow-y-auto pr-1">
+                    <p>
+                        <strong class="text-sky-300">Chiralität & Tragödie:</strong> Thalidomid besitzt ein asymmetrisches Kohlenstoffatom (Stereozentrum C-10). Während das <em>(R)-Enantiomer</em> beruhigend und schlaffördernd wirkt, verursacht das <em>(S)-Enantiomer</em> schwere teratogene Fehlbildungen bei Embryonen.
+                    </p>
+                    <p class="text-slate-400">
+                        <strong class="text-slate-200">Racemisierung im Körper:</strong> Eine Trennung der Enantiomere verhinderte die Katastrophe nicht, da sich (R)-Thalidomid im menschlichen Blutplasma über Keto-Enol-Tautomerie schnell in das teratogene (S)-Isomer umwandelt (Racemisierung).
+                    </p>
+                </div>
+
+                <!-- Quick Chemical Stats -->
+                <div class="grid grid-cols-4 gap-2 pt-1 border-t border-slate-800 text-center">
+                    <div class="bg-slate-900/60 p-2 rounded-xl">
+                        <div class="text-[10px] text-slate-400">Molare Masse</div>
+                        <div class="text-xs font-bold text-slate-200 code-font">258.23 g/mol</div>
+                    </div>
+                    <div class="bg-slate-900/60 p-2 rounded-xl">
+                        <div class="text-[10px] text-slate-400">Atome</div>
+                        <div class="text-xs font-bold text-sky-400 code-font">29 Ges.</div>
+                    </div>
+                    <div class="bg-slate-900/60 p-2 rounded-xl">
+                        <div class="text-[10px] text-slate-400">Ringe</div>
+                        <div class="text-xs font-bold text-emerald-400 code-font">3 Systeme</div>
+                    </div>
+                    <div class="bg-slate-900/60 p-2 rounded-xl">
+                        <div class="text-[10px] text-slate-400">Chirale C</div>
+                        <div class="text-xs font-bold text-amber-400 code-font">1 Zentrum</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. MOLECULAR DATA (3D Coordinates for Thalidomide)
+        // C13 H10 N2 O4
+        // ==========================================
+
+        const ATOM_TYPES = {
+            C: { name: 'Kohlenstoff', color: 0x333333, radius: 0.55, vdw: 1.70, mass: 12.011, elect: 2.55, valence: 4 },
+            H: { name: 'Wasserstoff', color: 0xf0f0f0, radius: 0.30, vdw: 1.20, mass: 1.008, elect: 2.20, valence: 1 },
+            N: { name: 'Stickstoff',  color: 0x3b82f6, radius: 0.50, vdw: 1.55, mass: 14.007, elect: 3.04, valence: 3 },
+            O: { name: 'Sauerstoff',  color: 0xef4444, radius: 0.48, vdw: 1.52, mass: 15.999, elect: 3.44, valence: 2 }
+        };
+
+        // Base Backbone coordinates for Thalidomide
+        // Phthalimide Ring + Glutarimide Ring
+        const baseAtoms = [
+            // Phthalimide Benzene Ring (C1-C6)
+            { type: 'C', pos: [-3.2,  0.7,  0.0] }, // C1
+            { type: 'C', pos: [-3.2, -0.7,  0.0] }, // C2
+            { type: 'C', pos: [-4.4, -1.4,  0.0] }, // C3
+            { type: 'C', pos: [-5.6, -0.7,  0.0] }, // C4
+            { type: 'C', pos: [-5.6,  0.7,  0.0] }, // C5
+            { type: 'C', pos: [-4.4,  1.4,  0.0] }, // C6
+
+            // Phthalimide Carbonyls and Nitrogen (C7, C8, N1, O1, O2)
+            { type: 'C', pos: [-1.8,  1.2,  0.0] }, // C7 (Carbonyl)
+            { type: 'O', pos: [-1.5,  2.4,  0.0] }, // O1 (Carbonyl Oxygen)
+            { type: 'C', pos: [-1.8, -1.2,  0.0] }, // C8 (Carbonyl)
+            { type: 'O', pos: [-1.5, -2.4,  0.0] }, // O2 (Carbonyl Oxygen)
+            { type: 'N', pos: [-1.0,  0.0,  0.0] }, // N1 (Phthalimide Nitrogen)
+
+            // Chiral Center Carbon (C9 / C-10 in IUPAC) - ATOM INDEX 11
+            { type: 'C', pos: [ 0.4,  0.0,  0.0], isChiral: true },
+
+            // Glutarimide Ring (C10, C11, C12, N2, O3, O4)
+            { type: 'C', pos: [ 1.1,  1.3,  0.2] }, // C10
+            { type: 'C', pos: [ 2.6,  1.2,  0.1] }, // C11
+            { type: 'C', pos: [ 3.2, -0.1, -0.2] }, // C12 (Carbonyl)
+            { type: 'O', pos: [ 4.4, -0.2, -0.3] }, // O3
+            { type: 'N', pos: [ 2.4, -1.2, -0.3] }, // N2 (Glutarimide NH)
+            { type: 'C', pos: [ 1.0, -1.1, -0.2] }, // C13 (Carbonyl)
+            { type: 'O', pos: [ 0.3, -2.1, -0.3] }, // O4
+
+            // Hydrogens
+            { type: 'H', pos: [-4.4, -2.4,  0.0] }, // H on C3
+            { type: 'H', pos: [-6.5, -1.2,  0.0] }, // H on C4
+            { type: 'H', pos: [-6.5,  1.2,  0.0] }, // H on C5
+            { type: 'H', pos: [-4.4,  2.4,  0.0] }, // H on C6
+            
+            { type: 'H', pos: [ 0.8,  1.8,  1.1] }, // H1 on C10
+            { type: 'H', pos: [ 0.8,  2.0, -0.6] }, // H2 on C10
+            { type: 'H', pos: [ 3.0,  1.8, -0.7] }, // H1 on C11
+            { type: 'H', pos: [ 3.0,  1.6,  1.0] }, // H2 on C11
+            { type: 'H', pos: [ 2.8, -2.1, -0.5] }  // H on N2 (NH)
+        ];
+
+        // Specific Chiral H-atom position for (R) and (S) enantiomers on Carbon 11
+        const chiralHydrogenPos = {
+            R: [ 0.7,  0.2, -1.0], // H pointing back
+            S: [ 0.7,  0.2,  1.0]  // H pointing forward
+        };
+
+        // Standard Chemical Bonds (Indices pairs)
+        const baseBonds = [
+            // Benzene Ring
+            [0,1], [1,2], [2,3], [3,4], [4,5], [5,0],
+            // Phthalimide Ring
+            [0,6], [6,7], [6,10], [1,8], [8,9], [8,10],
+            // Linker to Chiral Center
+            [10,11],
+            // Glutarimide Ring
+            [11,12], [12,13], [13,14], [14,15], [15,16], [16,17], [16,11], [17,18],
+            // Hydrogens
+            [2,19], [3,20], [4,21], [5,22],
+            [12,23], [12,24], [13,25], [13,26], [16,27]
+        ];
+
+        // Chiral Bond connection: From Atom 11 (Chiral C) to Atom 28 (Chiral H)
+        const chiralBond = [11, 28];
+
+        // ==========================================
+        // 2. THREE.JS SCENE SETUP
+        // ==========================================
+
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x0b0f19, 0.035);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 14);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 30;
+        controls.minDistance = 4;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 1.2;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        mainLight.position.set(10, 15, 10);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        scene.add(mainLight);
+
+        const blueRimLight = new THREE.PointLight(0x38bdf8, 2, 20);
+        blueRimLight.position.set(-10, -5, -5);
+        scene.add(blueRimLight);
+
+        const amberRimLight = new THREE.PointLight(0xf59e0b, 1.5, 20);
+        amberRimLight.position.set(10, -5, -5);
+        scene.add(amberRimLight);
+
+        // Sound Feedback using Web Audio API
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSynthesizedSound(freq, type = 'sine', duration = 0.15) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        // ==========================================
+        // 3. MOLECULE BUILDER & STATE MANAGEMENT
+        // ==========================================
+
+        const moleculeGroup = new THREE.Group();
+        scene.add(moleculeGroup);
+
+        let currentEnantiomer = 'R'; // 'R' or 'S'
+        let currentRenderMode = 'ballstick'; // 'ballstick', 'spacefill', 'wireframe'
+        let isAssembled = true;
+        let showChiralHighlight = true;
+
+        const atomMeshes = [];
+        const bondMeshes = [];
+        let chiralHaloMesh = null;
+        let particleSystem = null;
+
+        // Shared Geometries & Materials
+        const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+        const cylinderGeometry = new THREE.CylinderGeometry(1, 1, 1, 16);
+
+        // Create Materials for Atoms
+        const atomMaterials = {};
+        Object.keys(ATOM_TYPES).forEach(type => {
+            atomMaterials[type] = new THREE.MeshPhysicalMaterial({
+                color: ATOM_TYPES[type].color,
+                roughness: 0.15,
+                metalness: 0.1,
+                clearcoat: 0.8,
+                clearcoatRoughness: 0.2,
+                reflectivity: 0.9
+            });
+        });
+
+        const bondMaterial = new THREE.MeshStandardMaterial({
+            color: 0x94a3b8,
+            roughness: 0.3,
+            metalness: 0.2
+        });
+
+        const chiralHighlightMaterial = new THREE.MeshBasicMaterial({
+            color: 0xf59e0b,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.6
+        });
+
+        // Initialize Atoms
+        function initMolecule() {
+            // Clear existing
+            while (moleculeGroup.children.length > 0) {
+                moleculeGroup.remove(moleculeGroup.children[0]);
+            }
+            atomMeshes.length = 0;
+            bondMeshes.length = 0;
+
+            // Combine base atoms + chiral hydrogen
+            const atomDataList = JSON.parse(JSON.stringify(baseAtoms));
+            atomDataList.push({
+                type: 'H',
+                pos: chiralHydrogenPos[currentEnantiomer],
+                isChiralH: true
+            });
+
+            // Calculate Center of Mass to center the molecule
+            const center = new THREE.Vector3();
+            atomDataList.forEach(a => center.add(new THREE.Vector3(...a.pos)));
+            center.divideScalar(atomDataList.length);
+
+            // Create Atom Meshes
+            atomDataList.forEach((data, index) => {
+                const targetPos = new THREE.Vector3(...data.pos).sub(center);
+                const atomTypeInfo = ATOM_TYPES[data.type];
+
+                const mesh = new THREE.Mesh(sphereGeometry, atomMaterials[data.type]);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+
+                // Scale based on initial mode
+                const scale = currentRenderMode === 'spacefill' ? atomTypeInfo.vdw : atomTypeInfo.radius;
+                mesh.scale.setScalar(scale);
+                mesh.position.copy(targetPos);
+
+                // Custom Data for Raycasting & Animations
+                mesh.userData = {
+                    id: index,
+                    type: data.type,
+                    info: atomTypeInfo,
+                    targetPos: targetPos.clone(),
+                    randomPos: new THREE.Vector3(
+                        (Math.random() - 0.5) * 20,
+                        (Math.random() - 0.5) * 20,
+                        (Math.random() - 0.5) * 20
+                    ),
+                    isChiral: !!data.isChiral
+                };
+
+                atomMeshes.push(mesh);
+                moleculeGroup.add(mesh);
+
+                // Add Chiral Halo around Carbon-10
+                if (data.isChiral) {
+                    const haloGeo = new THREE.SphereGeometry(atomTypeInfo.radius * 1.8, 16, 16);
+                    chiralHaloMesh = new THREE.Mesh(haloGeo, chiralHighlightMaterial);
+                    chiralHaloMesh.position.copy(targetPos);
+                    chiralHaloMesh.visible = showChiralHighlight;
+                    moleculeGroup.add(chiralHaloMesh);
+                }
+            });
+
+            // Create Bonds
+            const allBonds = [...baseBonds, chiralBond];
+            allBonds.forEach(([i1, i2]) => {
+                const bondMesh = new THREE.Mesh(cylinderGeometry, bondMaterial);
+                bondMesh.castShadow = true;
+                bondMesh.userData = {
+                    atomIdx1: i1,
+                    atomIdx2: i2
+                };
+                bondMeshes.push(bondMesh);
+                moleculeGroup.add(bondMesh);
+            });
+
+            updateBondsPositions();
+            createParticleAssemblyEffect();
+        }
+
+        // Update Cylinder positions between atoms
+        function updateBondsPositions() {
+            const isWireframe = currentRenderMode === 'wireframe';
+            const isSpacefill = currentRenderMode === 'spacefill';
+
+            bondMeshes.forEach(bond => {
+                if (isSpacefill) {
+                    bond.visible = false;
+                    return;
+                }
+                bond.visible = true;
+
+                const atom1 = atomMeshes[bond.userData.atomIdx1];
+                const atom2 = atomMeshes[bond.userData.atomIdx2];
+
+                const p1 = atom1.position;
+                const p2 = atom2.position;
+
+                const distance = p1.distanceTo(p2);
+                const thickness = isWireframe ? 0.04 : 0.12;
+
+                bond.scale.set(thickness, distance, thickness);
+
+                // Position at midpoint
+                bond.position.copy(p1).add(p2).multiplyScalar(0.5);
+
+                // Orient towards atom2
+                const orientation = new THREE.Matrix4();
+                orientation.lookAt(p1, p2, new THREE.Vector3(0, 1, 0));
+                const rotation = new THREE.Matrix4().makeRotationX(Math.PI / 2);
+                orientation.multiply(rotation);
+                bond.quaternion.setFromRotationMatrix(orientation);
+            });
+        }
+
+        // Particle Sparkles during Assembly
+        function createParticleAssemblyEffect() {
+            const particleCount = 150;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            const color1 = new THREE.Color(0x38bdf8);
+            const color2 = new THREE.Color(0xf59e0b);
+
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 12;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 12;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 12;
+
+                const c = Math.random() > 0.5 ? color1 : color2;
+                colors[i * 3] = c.r;
+                colors[i * 3 + 1] = c.g;
+                colors[i * 3 + 2] = c.b;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.12,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0,
+                blending: THREE.AdditiveBlending
+            });
+
+            if (particleSystem) scene.remove(particleSystem);
+            particleSystem = new THREE.Points(geometry, material);
+            scene.add(particleSystem);
+        }
+
+        function triggerSparkle() {
+            if (!particleSystem) return;
+            particleSystem.material.opacity = 0.9;
+            new TWEEN.Tween(particleSystem.material)
+                .to({ opacity: 0 }, 1200)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+        }
+
+        // ==========================================
+        // 4. INTERACTIVE ANIMATIONS & TWEENING
+        // ==========================================
+
+        function animateAssembly(assemble = true) {
+            isAssembled = assemble;
+            playSynthesizedSound(assemble ? 440 : 220, 'sine', 0.25);
+            triggerSparkle();
+
+            atomMeshes.forEach((atom, idx) => {
+                const target = assemble ? atom.userData.targetPos : atom.userData.randomPos;
+
+                new TWEEN.Tween(atom.position)
+                    .to(target, 1200 + idx * 20)
+                    .easing(TWEEN.Easing.Back.Out)
+                    .onUpdate(() => {
+                        updateBondsPositions();
+                        if (atom.userData.isChiral && chiralHaloMesh) {
+                            chiralHaloMesh.position.copy(atom.position);
+                        }
+                    })
+                    .start();
+            });
+        }
+
+        function switchEnantiomer(type) {
+            if (currentEnantiomer === type) return;
+            currentEnantiomer = type;
+            playSynthesizedSound(600, 'triangle', 0.2);
+
+            // Update Chiral Badge Text
+            const badgeText = document.getElementById('chiral-text');
+            const badge = document.getElementById('chiral-badge');
+
+            if (type === 'R') {
+                badgeText.innerHTML = 'Aktuelles Enantiomer: <strong>(R)-Thalidomid</strong> (Sedierend)';
+                badge.className = badge.className.replace('border-rose-500/40 text-rose-300', 'border-amber-500/40 text-amber-300');
+            } else {
+                badgeText.innerHTML = 'Aktuelles Enantiomer: <strong>(S)-Thalidomid</strong> (Teratogen/Gefährlich)';
+                badge.className = badge.className.replace('border-amber-500/40 text-amber-300', 'border-rose-500/40 text-rose-300');
+            }
+
+            // Animate transition of chiral hydrogen
+            const chiralH = atomMeshes[28]; // Last atom is Chiral H
+            if (chiralH) {
+                const newPos = new THREE.Vector3(...chiralHydrogenPos[type]);
+                // Subtract center offset
+                const center = new THREE.Vector3();
+                baseAtoms.forEach(a => center.add(new THREE.Vector3(...a.pos)));
+                center.divideScalar(baseAtoms.length + 1);
+                newPos.sub(center);
+
+                chiralH.userData.targetPos.copy(newPos);
+
+                new TWEEN.Tween(chiralH.position)
+                    .to(newPos, 800)
+                    .easing(TWEEN.Easing.Cubic.InOut)
+                    .onUpdate(() => updateBondsPositions())
+                    .start();
+            }
+
+            // Pulse Halo Effect
+            if (chiralHaloMesh) {
+                new TWEEN.Tween(chiralHaloMesh.scale)
+                    .to({ x: 2.5, y: 2.5, z: 2.5 }, 300)
+                    .yoyo(true)
+                    .repeat(1)
+                    .start();
+            }
+        }
+
+        function setRenderMode(mode) {
+            currentRenderMode = mode;
+            playSynthesizedSound(350, 'sine', 0.1);
+
+            atomMeshes.forEach(atom => {
+                const info = atom.userData.info;
+                let targetScale = info.radius;
+
+                if (mode === 'spacefill') targetScale = info.vdw;
+                if (mode === 'wireframe') targetScale = 0.2;
+
+                new TWEEN.Tween(atom.scale)
+                    .to({ x: targetScale, y: targetScale, z: targetScale }, 600)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .start();
+
+                // Material Wireframe toggle
+                atom.material.wireframe = (mode === 'wireframe');
+            });
+
+            setTimeout(() => updateBondsPositions(), 50);
+        }
+
+        // ==========================================
+        // 5. RAYCASTING & INTERACTIVE HOVER
+        // ==========================================
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const tooltip = document.getElementById('tooltip');
+        let hoveredAtom = null;
+
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Position Tooltip
+            tooltip.style.left = `${event.clientX}px`;
+            tooltip.style.top = `${event.clientY}px`;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(atomMeshes);
+
+            if (intersects.length > 0) {
+                const atom = intersects[0].object;
+                if (hoveredAtom !== atom) {
+                    if (hoveredAtom) hoveredAtom.material.emissive?.setHex(0x000000);
+                    hoveredAtom = atom;
+                    if (hoveredAtom.material.emissive) {
+                        hoveredAtom.material.emissive.setHex(0x38bdf8);
+                    }
+                    
+                    showAtomInfo(atom);
+                    playSynthesizedSound(800, 'sine', 0.05);
+                }
+                tooltip.classList.remove('hidden');
+            } else {
+                if (hoveredAtom) {
+                    if (hoveredAtom.material.emissive) hoveredAtom.material.emissive.setHex(0x000000);
+                    hoveredAtom = null;
+                }
+                tooltip.classList.add('hidden');
+            }
+        }
+
+        function showAtomInfo(atom) {
+            const info = atom.userData.info;
+            const type = atom.userData.type;
+
+            document.getElementById('tooltip-atom-type').innerText = `${info.name} (${type})`;
+            document.getElementById('tooltip-atom-details').innerText = `ID: #${atom.userData.id + 1} | Valenz: ${info.valence}`;
+
+            // Update Left Inspector Panel
+            document.getElementById('insp-symbol').innerText = `${type} #${atom.userData.id + 1}`;
+            document.getElementById('insp-content').innerHTML = `
+                <div class="flex justify-between"><span>Element:</span> <strong class="text-white">${info.name}</strong></div>
+                <div class="flex justify-between"><span>Atommmasse:</span> <strong class="text-sky-300 code-font">${info.mass} u</strong></div>
+                <div class="flex justify-between"><span>Elektronegativität:</span> <strong class="text-emerald-300 code-font">${info.elect} (Pauling)</strong></div>
+                <div class="flex justify-between"><span>Van-der-Waals-R.:</span> <strong class="text-amber-300 code-font">${info.vdw} Å</strong></div>
+                ${atom.userData.isChiral ? '<div class="mt-2 text-amber-400 font-bold bg-amber-500/10 p-1 rounded text-center">★ Chirales Stereozentrum C-10</div>' : ''}
+            `;
+        }
+
+        // ==========================================
+        // 6. UI EVENT BINDINGS
+        // ==========================================
+
+        document.getElementById('btn-assemble').addEventListener('click', (e) => {
+            setActiveButtonGroup(e.currentTarget, ['btn-assemble', 'btn-disassemble']);
+            animateAssembly(true);
+        });
+
+        document.getElementById('btn-disassemble').addEventListener('click', (e) => {
+            setActiveButtonGroup(e.currentTarget, ['btn-assemble', 'btn-disassemble']);
+            animateAssembly(false);
+        });
+
+        document.getElementById('btn-enantiomer-r').addEventListener('click', (e) => {
+            setActiveButtonGroup(e.currentTarget, ['btn-enantiomer-r', 'btn-enantiomer-s']);
+            switchEnantiomer('R');
+        });
+
+        document.getElementById('btn-enantiomer-s').addEventListener('click', (e) => {
+            setActiveButtonGroup(e.currentTarget, ['btn-enantiomer-r', 'btn-enantiomer-s']);
+            switchEnantiomer('S');
+        });
+
+        document.getElementById('mode-ballstick').addEventListener('click', (e) => {
+            setActiveButtonGroup(e.currentTarget, ['mode-ballstick', 'mode-spacefill', 'mode-wireframe']);
+            setRenderMode('ballstick');
+        });
+
+        document.getElementById('mode-spacefill').addEventListener('click', (e) => {
+            setActiveButtonGroup(e.currentTarget, ['mode-ballstick', 'mode-spacefill', 'mode-wireframe']);
+            setRenderMode('spacefill');
+        });
+
+        document.getElementById('mode-wireframe').addEventListener('click', (e) => {
+            setActiveButtonGroup(e.currentTarget, ['mode-ballstick', 'mode-spacefill', 'mode-wireframe']);
+            setRenderMode('wireframe');
+        });
+
+        document.getElementById('btn-reset-view').addEventListener('click', () => {
+            new TWEEN.Tween(camera.position)
+                .to({ x: 0, y: 0, z: 14 }, 1000)
+                .easing(TWEEN.Easing.Cubic.Out)
+                .start();
+            controls.target.set(0, 0, 0);
+        });
+
+        document.getElementById('toggle-chiral-highlight').addEventListener('change', (e) => {
+            showChiralHighlight = e.target.checked;
+            if (chiralHaloMesh) chiralHaloMesh.visible = showChiralHighlight;
+        });
+
+        document.getElementById('toggle-autorotate').addEventListener('change', (e) => {
+            controls.autoRotate = e.target.checked;
+        });
+
+        function setActiveButtonGroup(clickedBtn, groupIds) {
+            groupIds.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.classList.remove('active');
+            });
+            clickedBtn.classList.add('active');
+        }
+
+        window.addEventListener('mousemove', onMouseMove);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ==========================================
+        // 7. RENDER LOOP
+        // ==========================================
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+
+            TWEEN.update();
+            controls.update();
+
+            // Subtle rotation for halo
+            if (chiralHaloMesh && showChiralHighlight) {
+                chiralHaloMesh.rotation.y += 0.02;
+                chiralHaloMesh.rotation.x += 0.01;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function() {
+            initMolecule();
+            animate();
+        };
+
+    </script>
+</body>
+</html>
