@@ -101,7 +101,7 @@
     <!-- Main Content Container -->
     <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-10">
 
-        <!-- ==================== TAB 1: DASHBOARD ==================== --> Fahrplan
+        <!-- ==================== TAB 1: DASHBOARD ==================== -->
         <section id="section-dashboard" class="space-y-8">
             <!-- Hero Banner -->
             <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-cyan-950/50 via-purple-950/40 to-pink-950/50 border border-slate-800 p-6 sm:p-10 glow-effect">
@@ -231,7 +231,7 @@
                 <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-4 sticky top-28 h-fit">
                     <div class="flex items-center justify-between">
                         <h4 class="font-bold text-white text-sm flex items-center">
-                            <i class="fa-solid fa-chart-area text-cyan-400 mr-2"></i> Funktionsgraph & Visualisierung
+                            <i class="fa-solid fa-chart-area text-cyan-400 mr-2"></i> Funktionsgraph & Marker
                         </h4>
                         <span class="text-xs text-slate-400 math-font" id="graphCoords">x: 0.0, y: 0.0</span>
                     </div>
@@ -243,6 +243,7 @@
                     <div class="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
                         <div class="flex items-center space-x-3">
                             <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block mr-1.5"></span> f(x)</span>
+                            <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block mr-1.5"></span> Nullstellen</span>
                             <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block mr-1.5"></span> Extrempunkte</span>
                             <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block mr-1.5"></span> Wendepunkte</span>
                         </div>
@@ -520,20 +521,20 @@
             runSolver();
         }
 
-        // Robust polynomial analysis helper using math.js derivatives and evaluations
+        let currentAnalysisData = null;
+
         function runSolver() {
             const rawExpr = document.getElementById('functionInput').value.trim() || 'x^3 - 3*x';
             const container = document.getElementById('stepsAccordion');
             
             try {
-                // Parse expression
                 const node = math.parse(rawExpr);
                 const compiled = node.compile();
                 
-                // Numerical test
+                // Test evaluation
                 compiled.evaluate({x: 1});
 
-                // Compute symbolic / numerical derivatives via math.js
+                // Compute symbolic derivatives via math.js
                 const deriv1 = math.derivative(node, 'x');
                 const deriv2 = math.derivative(deriv1, 'x');
                 const deriv3 = math.derivative(deriv2, 'x');
@@ -542,40 +543,38 @@
                 const compDeriv2 = deriv2.compile();
                 const compDeriv3 = deriv3.compile();
 
-                // Find roots (Nullstellen) numerically between -10 and 10
+                // 1. Find Roots (Nullstellen)
                 let roots = [];
                 let prevX = -10;
                 let prevY = compiled.evaluate({x: prevX});
-                for (let x = -9.9; x <= 10; x += 0.1) {
+                for (let x = -9.9; x <= 10; x += 0.05) {
                     let y = compiled.evaluate({x: x});
                     if (Math.abs(y) < 0.001) {
-                        roots.push(x.toFixed(2));
+                        roots.push(x);
                     } else if (prevY * y < 0) {
-                        // Sign change root refinement
-                        let r = x - 0.05;
-                        roots.push(r.toFixed(2));
+                        let r = x - 0.025;
+                        roots.push(r);
                     }
                     prevX = x;
                     prevY = y;
                 }
-                // Deduplicate roots
-                roots = [...new Set(roots)];
+                // Filter unique roots (tolerance 0.1)
+                roots = roots.filter((val, idx, arr) => idx === 0 || Math.abs(val - arr[idx-1]) > 0.2);
 
-                // Find Extremes (f'(x) = 0)
+                // 2. Find Extremes (f'(x) = 0)
                 let extrema = [];
                 for (let x = -10; x <= 10; x += 0.05) {
                     let d1 = compDeriv1.evaluate({x: x});
                     if (Math.abs(d1) < 0.02) {
                         let y = compiled.evaluate({x: x});
                         let d2 = compDeriv2.evaluate({x: x});
-                        let type = d2 < 0 ? 'Hochpunkt (Maximum)' : (d2 > 0 ? 'Tiefpunkt (Minimum)' : 'Sattelpunkt / Extremum');
-                        extrema.push({x: x.toFixed(2), y: y.toFixed(2), type: type});
+                        let type = d2 < 0 ? 'Hochpunkt (Maximum)' : (d2 > 0 ? 'Tiefpunkt (Minimum)' : 'Sattelpunkt');
+                        extrema.push({x: x, y: y, type: type});
                     }
                 }
-                // Deduplicate close extrema
                 extrema = extrema.filter((ext, idx, arr) => idx === 0 || Math.abs(ext.x - arr[idx-1].x) > 0.3);
 
-                // Find Inflection Points (f''(x) = 0)
+                // 3. Find Inflection Points (f''(x) = 0)
                 let inflection = [];
                 for (let x = -10; x <= 10; x += 0.05) {
                     let d2 = compDeriv2.evaluate({x: x});
@@ -583,13 +582,21 @@
                         let y = compiled.evaluate({x: x});
                         let d3 = compDeriv3.evaluate({x: x});
                         if (Math.abs(d3) > 0.01) {
-                            inflection.push({x: x.toFixed(2), y: y.toFixed(2)});
+                            inflection.push({x: x, y: y});
                         }
                     }
                 }
                 inflection = inflection.filter((inf, idx, arr) => idx === 0 || Math.abs(inf.x - arr[idx-1].x) > 0.3);
 
-                // Build Dynamic Step-by-Step HTML
+                // Store state for canvas rendering
+                currentAnalysisData = {
+                    compiled: compiled,
+                    roots: roots,
+                    extrema: extrema,
+                    inflection: inflection
+                };
+
+                // Build Step-by-Step HTML
                 let stepsHTML = `
                     <div class="bg-slate-900/80 border border-cyan-500/30 rounded-2xl p-6 space-y-3">
                         <div class="flex items-center justify-between">
@@ -599,8 +606,7 @@
                         <h4 class="font-bold text-white text-base">Definitionsmenge & Symmetrie</h4>
                         <p class="text-slate-300 text-xs leading-relaxed">
                             Gegebene Funktion: <strong class="text-cyan-400 math-font">f(x) = ${rawExpr}</strong>.<br>
-                            Da keine Definitionslücken (wie Nenner null oder Logarithmus von negativen Zahlen) vorliegen, ist die Definitionsmenge <strong>D = ℝ</strong>.<br>
-                            Symmetrie: Überprüfung von f(-x) ergibt, ob Achsensymmetrie zur y-Achse oder Punktsymmetrie zum Ursprung vorliegt.
+                            Da keine Definitionslücken vorliegen, ist die Definitionsmenge <strong>D = ℝ</strong>.
                         </p>
                     </div>
 
@@ -625,7 +631,7 @@
                         <h4 class="font-bold text-white text-base">Achsenschnittpunkte</h4>
                         <p class="text-slate-300 text-xs leading-relaxed">
                             • y-Achsenabschnitt (x = 0): <strong class="text-pink-400">S_y(0 | ${compiled.evaluate({x: 0}).toFixed(2)})</strong><br>
-                            • Nullstellen (f(x) = 0): ${roots.length > 0 ? 'Gefundene Stellen bei x ≈ ' + roots.join(', ') : 'Keine reellen Nullstellen im Intervall [-10, 10].'}
+                            • Nullstellen (f(x) = 0): ${roots.length > 0 ? roots.map(r => 'x ≈ ' + r.toFixed(2)).join(', ') : 'Keine reellen Nullstellen.'}
                         </p>
                     </div>
 
@@ -650,8 +656,7 @@
                         </div>
                         <h4 class="font-bold text-white text-base">Notwendige & Hinreichende Bedingung</h4>
                         <p class="text-slate-300 text-xs leading-relaxed">
-                            Lösung von f'(x) = 0 und Prüfung mit f''(x):<br>
-                            ${extrema.length > 0 ? extrema.map(e => `• <strong>${e.type}</strong> bei P(${e.x} | ${e.y})`).join('<br>') : 'Keine Extrempunkte im Intervall.'}
+                            ${extrema.length > 0 ? extrema.map(e => `• <strong>${e.type}</strong> bei P(${e.x.toFixed(2)} | ${e.y.toFixed(2)})`).join('<br>') : 'Keine Extrempunkte.'}
                         </p>
                     </div>
 
@@ -662,14 +667,13 @@
                         </div>
                         <h4 class="font-bold text-white text-base">Wendepunkt & Krümmung</h4>
                         <p class="text-slate-300 text-xs leading-relaxed">
-                            Lösung von f''(x) = 0 mit f'''(x) ≠ 0:<br>
-                            ${inflection.length > 0 ? inflection.map(i => `• <strong>Wendepunkt</strong> bei W(${i.x} | ${i.y})`).join('<br>') : 'Keine Wendepunkte im Intervall.'}
+                            ${inflection.length > 0 ? inflection.map(i => `• <strong>Wendepunkt</strong> bei W(${i.x.toFixed(2)} | ${i.y.toFixed(2)})`).join('<br>') : 'Keine Wendepunkte.'}
                         </p>
                     </div>
                 `;
 
                 container.innerHTML = stepsHTML;
-                drawGraph(compiled);
+                drawGraph();
 
             } catch(e) {
                 container.innerHTML = `
@@ -680,12 +684,12 @@
             }
         }
 
-        // --- Canvas Graph Plotter ---
+        // --- Canvas Graph Plotter with Exact Dynamic Markers ---
         const canvas = document.getElementById('analysisCanvas');
         const ctx = canvas.getContext('2d');
 
-        function drawGraph(compiledFunc) {
-            if (!canvas) return;
+        function drawGraph() {
+            if (!canvas || !currentAnalysisData) return;
             const width = canvas.width = canvas.parentElement.clientWidth;
             const height = canvas.height = canvas.parentElement.clientHeight;
             
@@ -693,15 +697,15 @@
 
             const cx = width / 2;
             const cy = height / 2;
-            const scale = 40; // Pixels per unit
+            const scale = 35; // Pixels per unit
 
             // Grid lines
             ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 1;
-            for (let x = -10; x <= 10; x++) {
+            for (let x = -15; x <= 15; x++) {
                 ctx.beginPath(); ctx.moveTo(cx + x * scale, 0); ctx.lineTo(cx + x * scale, height); ctx.stroke();
             }
-            for (let y = -10; y <= 10; y++) {
+            for (let y = -15; y <= 15; y++) {
                 ctx.beginPath(); ctx.moveTo(0, cy + y * scale); ctx.lineTo(width, cy + y * scale); ctx.stroke();
             }
 
@@ -720,7 +724,7 @@
             for (let px = 0; px < width; px++) {
                 const x = (px - cx) / scale;
                 try {
-                    const y = compiledFunc.evaluate({x: x});
+                    const y = currentAnalysisData.compiled.evaluate({x: x});
                     const py = cy - y * scale;
                     if (!isNaN(py) && isFinite(py)) {
                         if (!drawing) { ctx.moveTo(px, py); drawing = true; }
@@ -734,18 +738,42 @@
             }
             ctx.stroke();
 
-            // Highlight special points for x^3 - 3x
-            const points = [
-                {x: -1, y: 2, color: '#f59e0b', label: 'H(-1|2)'},
-                {x: 1, y: -2, color: '#f59e0b', label: 'T(1|-2)'},
-                {x: 0, y: 0, color: '#f43f5e', label: 'W(0|0)'}
-            ];
-
-            points.forEach(p => {
-                const px = cx + p.x * scale;
-                const py = cy - p.y * scale;
-                ctx.fillStyle = p.color;
+            // 1. Draw Nullstellen (Green)
+            currentAnalysisData.roots.forEach(rx => {
+                const ry = 0;
+                const px = cx + rx * scale;
+                const py = cy - ry * scale;
+                ctx.fillStyle = '#10b981';
                 ctx.beginPath(); ctx.arc(px, py, 6, 0, 2 * Math.PI); ctx.fill();
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+            });
+
+            // 2. Draw Extrempunkte (Amber)
+            currentAnalysisData.extrema.forEach(ext => {
+                const px = cx + ext.x * scale;
+                const py = cy - ext.y * scale;
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath(); ctx.arc(px, py, 7, 0, 2 * Math.PI); ctx.fill();
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+
+                // Label
+                ctx.fillStyle = '#f59e0b';
+                ctx.font = '11px Fira Code, monospace';
+                ctx.fillText(`(${ext.x.toFixed(1)}|${ext.y.toFixed(1)})`, px + 10, py - 5);
+            });
+
+            // 3. Draw Wendepunkte (Rose)
+            currentAnalysisData.inflection.forEach(inf => {
+                const px = cx + inf.x * scale;
+                const py = cy - inf.y * scale;
+                ctx.fillStyle = '#f43f5e';
+                ctx.beginPath(); ctx.arc(px, py, 7, 0, 2 * Math.PI); ctx.fill();
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+
+                        // Label
+                ctx.fillStyle = '#f43f5e';
+                ctx.font = '11px Fira Code, monospace';
+                ctx.fillText(`W(${inf.x.toFixed(1)}|${inf.y.toFixed(1)})`, px + 10, py - 5);
             });
 
             canvas.onmousemove = (e) => {
@@ -754,7 +782,7 @@
                 const my = e.clientY - rect.top;
                 const mathX = (mx - cx) / scale;
                 try {
-                    const mathY = compiledFunc.evaluate({x: mathX});
+                    const mathY = currentAnalysisData.compiled.evaluate({x: mathX});
                     document.getElementById('graphCoords').textContent = `x: ${mathX.toFixed(2)}, y: ${mathY.toFixed(2)}`;
                 } catch(err) {}
             };
@@ -814,11 +842,11 @@
 
             if (userVal === targetVal) {
                 feedback.className = "p-4 rounded-xl text-sm font-medium border bg-emerald-950/40 border-emerald-500/40 text-emerald-300";
-                feedback.innerHTML = '<i class="fa-solid fa-circle-check mr-2 text-emerald-400">Richtig! Hervorragend gelöst. 🎉';
+                feedback.innerHTML = '<i class="fa-solid fa-circle-check mr-2 text-emerald-400"></i> Richtig! Hervorragend gelöst. 🎉';
                 confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
             } else {
                 feedback.className = "p-4 rounded-xl text-sm font-medium border bg-rose-950/40 border-rose-500/40 text-rose-300";
-                feedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2 text-rose-400">Fast! Tipp: ${missions[currentMission].hint}`;
+                feedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2 text-rose-400"></i> Fast! Tipp: ${missions[currentMission].hint}`;
             }
         }
 
@@ -830,3 +858,5 @@
     </script>
 </body>
 </html>
+```
+eof
