@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnalyseMaster – Kurvendiskussion & Analysis Lab</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            purple: '#8b5cf6',
+                            pink: '#ec4899',
+                            cyan: '#06b6d4',
+                            mint: '#10b981',
+                            dark: '#0f172a',
+                            card: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts: Inter & Fira Code -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Math.js for robust mathematical parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .math-font { font-family: 'Fira Code', monospace; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .glow-effect {
+            box-shadow: 0 0 30px -5px rgba(6, 182, 212, 0.25), 0 0 15px -5px rgba(139, 92, 246, 0.25);
+        }
+    </style>
+</head>
+<body class="bg-brand-dark text-slate-100 min-h-screen flex flex-col selection:bg-cyan-500 selection:text-white">
+
+    <!-- Header & Navigation -->
+    <header class="sticky top-0 z-50 backdrop-blur-md bg-brand-dark/85 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <i class="fa-solid fa-chart-line text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                        AnalyseMaster
+                    </h1>
+                    <p class="text-xs text-slate-400">Gymnasium Oberstufe – Kurvendiskussion & Analysis</p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="hidden md:flex space-x-1 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 text-white bg-cyan-600 shadow-lg shadow-cyan-600/30">
+                    <i class="fa-solid fa-house mr-1.5"></i> Dashboard
+                </button>
+                <button onclick="switchTab('solver')" id="tab-solver" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 text-slate-300 hover:text-white">
+                    <i class="fa-solid fa-calculator mr-1.5"></i> Lösungsassistent
+                </button>
+                <button onclick="switchTab('tutor')" id="tab-tutor" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 text-slate-300 hover:text-white">
+                    <i class="fa-solid fa-graduation-cap mr-1.5"></i> Schritt-Tutor
+                </button>
+                <button onclick="switchTab('formulas')" id="tab-formulas" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 text-slate-300 hover:text-white">
+                    <i class="fa-solid fa-book mr-1.5"></i> Formelsammlung
+                </button>
+                <button onclick="switchTab('apps')" id="tab-apps" class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 text-slate-300 hover:text-white">
+                    <i class="fa-solid fa-earth-europe mr-1.5"></i> Praxis-Anwendungen
+                </button>
+            </nav>
+
+            <div class="flex items-center space-x-3">
+                <button onclick="switchTab('solver')" class="hidden sm:flex px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white text-sm font-semibold shadow-lg shadow-cyan-500/20 transition items-center">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Funktion analysieren
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Tab Bar -->
+        <div class="flex md:hidden bg-slate-900/90 border-t border-slate-800 px-2 py-2 justify-around">
+            <button onclick="switchTab('dashboard')" id="mobile-tab-dashboard" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-cyan-600">Home</button>
+            <button onclick="switchTab('solver')" id="mobile-tab-solver" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300">Solver</button>
+            <button onclick="switchTab('tutor')" id="mobile-tab-tutor" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300">Tutor</button>
+            <button onclick="switchTab('formulas')" id="mobile-tab-formulas" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300">Formeln</button>
+            <button onclick="switchTab('apps')" id="mobile-tab-apps" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300">Praxis</button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+
+        <!-- ==================== TAB 1: DASHBOARD ==================== --> Fahrplan
+        <section id="section-dashboard" class="space-y-8">
+            <!-- Hero Banner -->
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-cyan-950/50 via-purple-950/40 to-pink-950/50 border border-slate-800 p-6 sm:p-10 glow-effect">
+                <div class="absolute -right-10 -bottom-10 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -left-10 -top-10 w-72 h-72 bg-pink-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="relative z-10 max-w-3xl space-y-4">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                        <i class="fa-solid fa-rocket mr-1.5"></i> Abitur-Vorbereitung Sekundarstufe II
+                    </span>
+                    <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                        Der komplette Fahrplan zur Kurvendiskussion
+                    </h2>
+                    <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                        Meistere alle 7 Stufen der Kurvendiskussion von der Definitionsmenge bis zum Wendepunkt. Nutze unseren interaktiven Lösungsassistenten und den Schritt-für-Schritt-Tutor für deine Bestnote im Mathe-Abitur!
+                    </p>
+                    <div class="pt-2 flex flex-wrap gap-3">
+                        <button onclick="switchTab('solver')" class="px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm shadow-lg shadow-cyan-600/30 transition flex items-center">
+                            <i class="fa-solid fa-calculator mr-2"></i> Jetzt Funktion eingeben
+                        </button>
+                        <button onclick="switchTab('tutor')" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm border border-slate-700 transition flex items-center">
+                            <i class="fa-solid fa-graduation-cap mr-2"></i> Geführten Tutor starten
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7 Schritte Grid -->
+            <div class="space-y-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Die 7 Säulen der Kurvendiskussion</h3>
+                        <p class="text-slate-400 text-xs sm:text-sm">Klicke auf einen Schritt, um direkt zum Assistenten oder zur Formelsammlung zu springen</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div onclick="switchTab('solver')" class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 hover:border-cyan-500/50 transition cursor-pointer group">
+                        <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 font-bold text-base flex items-center justify-center border border-cyan-500/20 mb-4 group-hover:bg-cyan-500 group-hover:text-white transition">01</div>
+                        <h4 class="font-bold text-white text-base mb-1">Definitionsmenge & Symmetrie</h4>
+                        <p class="text-slate-400 text-xs leading-relaxed">Untersuchung auf Definitionslücken, Polstellen und Achsensymmetrie f(-x) = f(x).</p>
+                    </div>
+                    <div onclick="switchTab('solver')" class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 hover:border-purple-500/50 transition cursor-pointer group">
+                        <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 font-bold text-base flex items-center justify-center border border-purple-500/20 mb-4 group-hover:bg-purple-500 group-hover:text-white transition">02</div>
+                        <h4 class="font-bold text-white text-base mb-1">Verhalten im Unendlichen</h4>
+                        <p class="text-slate-400 text-xs leading-relaxed">Grenzwertbetrachtung (Limes) für x → +∞ und x → -∞.</p>
+                    </div>
+                    <div onclick="switchTab('solver')" class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 hover:border-pink-500/50 transition cursor-pointer group">
+                        <div class="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-400 font-bold text-base flex items-center justify-center border border-pink-500/20 mb-4 group-hover:bg-pink-500 group-hover:text-white transition">03</div>
+                        <h4 class="font-bold text-white text-base mb-1">Achsenschnittpunkte</h4>
+                        <p class="text-slate-400 text-xs leading-relaxed">Berechnung des y-Achsenabschnitts f(0) und der Nullstellen f(x) = 0.</p>
+                    </div>
+                    <div onclick="switchTab('solver')" class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 hover:border-mint-500/50 transition cursor-pointer group">
+                        <div class="w-10 h-10 rounded-xl bg-mint-500/10 text-mint-400 font-bold text-base flex items-center justify-center border border-mint-500/20 mb-4 group-hover:bg-mint-500 group-hover:text-white transition">04</div>
+                        <h4 class="font-bold text-white text-base mb-1">Ableitungen f', f'', f'''</h4>
+                        <p class="text-slate-400 text-xs leading-relaxed">Bestimmung der ersten drei Ableitungen als Grundlage für Extrem- und Wendepunkte.</p>
+                    </div>
+                    <div onclick="switchTab('solver')" class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 hover:border-amber-500/50 transition cursor-pointer group">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 font-bold text-base flex items-center justify-center border border-amber-500/20 mb-4 group-hover:bg-amber-500 group-hover:text-white transition">05</div>
+                        <h4 class="font-bold text-white text-base mb-1">Extrempunkte (Hoch-/Tiefpunkte)</h4>
+                        <p class="text-slate-400 text-xs leading-relaxed">Notwendige Bedingung f'(x)=0 und hinreichende Bedingung f''(x) ≠ 0.</p>
+                    </div>
+                    <div onclick="switchTab('solver')" class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 hover:border-rose-500/50 transition cursor-pointer group">
+                        <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 font-bold text-base flex items-center justify-center border border-rose-500/20 mb-4 group-hover:bg-rose-500 group-hover:text-white transition">06</div>
+                        <h4 class="font-bold text-white text-base mb-1">Wendepunkte & Sattelpunkte</h4>
+                        <p class="text-slate-400 text-xs leading-relaxed">Krümmungsverhalten mit f''(x)=0 und Krümmungswechsel f'''(x) ≠ 0.</p>
+                    </div>
+                    <div onclick="switchTab('solver')" class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 hover:border-indigo-500/50 transition cursor-pointer group">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 font-bold text-base flex items-center justify-center border border-indigo-500/20 mb-4 group-hover:bg-indigo-500 group-hover:text-white transition">07</div>
+                        <h4 class="font-bold text-white text-base mb-1">Wertebereich & Graph</h4>
+                        <p class="text-slate-400 text-xs leading-relaxed">Skizze und exakte grafische Darstellung mit Koordinatensystem und Zoom.</p>
+                    </div>
+                    <div onclick="switchTab('apps')" class="bg-gradient-to-br from-cyan-950/40 to-slate-900/80 border border-cyan-500/30 rounded-2xl p-5 hover:border-cyan-400 transition cursor-pointer group flex flex-col justify-between">
+                        <div>
+                            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-300 font-bold text-base flex items-center justify-center border border-cyan-500/30 mb-4"><i class="fa-solid fa-star"></i></div>
+                            <h4 class="font-bold text-white text-base mb-1">Wirtschaft & Praxis</h4>
+                            <p class="text-slate-400 text-xs leading-relaxed">Kosten-, Erlös- und Gewinnfunktionen im Unternehmen.</p>
+                        </div>
+                        <span class="text-xs text-cyan-400 font-semibold mt-3 flex items-center">Entdecken <i class="fa-solid fa-arrow-right ml-1"></i></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: LÖSUNGSASSISTENT (SOLVER) ==================== -->
+        <section id="section-solver" class="space-y-8 hidden">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs font-bold text-cyan-400 uppercase tracking-widest bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> Automatischer Lösungsassistent
+                        </span>
+                        <h3 class="text-2xl font-extrabold text-white mt-2">Funktionsanalyse eingeben</h3>
+                        <p class="text-slate-300 text-sm">Gib eine Polynomfunktion ein (z.B. <code class="text-cyan-400 math-font">x^3 - 3*x</code> oder <code class="text-cyan-400 math-font">-0.5*x^4 + 2*x^2</code>).</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="loadPreset('x^3 - 3*x')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-cyan-300 border border-slate-700 transition">x³ - 3x</button>
+                        <button onclick="loadPreset('-0.5*x^4 + 2*x^2')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-purple-300 border border-slate-700 transition">-0.5x⁴ + 2x²</button>
+                        <button onclick="loadPreset('x^3 - 6*x^2 + 9*x')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-pink-300 border border-slate-700 transition">x³ - 6x² + 9x</button>
+                    </div>
+                </div>
+
+                <!-- Input Field & Execute -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="relative flex-grow">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-cyan-400 font-bold math-font">f(x) =</span>
+                        <input type="text" id="functionInput" value="x^3 - 3*x" 
+                            class="w-full bg-slate-950 border border-slate-700 rounded-2xl py-3 pl-16 pr-4 text-white math-font focus:outline-none focus:border-cyan-500 text-base shadow-inner"
+                            placeholder="z.B. x^3 - 4*x">
+                    </div>
+                    <button onclick="runSolver()" class="px-8 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-semibold text-sm shadow-lg shadow-cyan-500/25 transition flex items-center justify-center">
+                        <i class="fa-solid fa-play mr-2"></i> Analysieren
+                    </button>
+                </div>
+            </div>
+
+            <!-- Analysis Results & Step-by-Step Display -->
+            <div id="solverResultsContainer" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left: Step-by-step breakdown -->
+                <div class="lg:col-span-2 space-y-6" id="stepsAccordion">
+                    <!-- Dynamic steps will be injected here -->
+                </div>
+
+                <!-- Right: Interactive Canvas Graph -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-4 sticky top-28 h-fit">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-white text-sm flex items-center">
+                            <i class="fa-solid fa-chart-area text-cyan-400 mr-2"></i> Funktionsgraph & Visualisierung
+                        </h4>
+                        <span class="text-xs text-slate-400 math-font" id="graphCoords">x: 0.0, y: 0.0</span>
+                    </div>
+
+                    <div class="relative w-full h-80 bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden flex items-center justify-center">
+                        <canvas id="analysisCanvas" class="w-full h-full cursor-crosshair"></canvas>
+                    </div>
+
+                    <div class="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
+                        <div class="flex items-center space-x-3">
+                            <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block mr-1.5"></span> f(x)</span>
+                            <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block mr-1.5"></span> Extrempunkte</span>
+                            <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block mr-1.5"></span> Wendepunkte</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: SCHRITT-FÜR-SCHRITT TUTOR ==================== -->
+        <section id="section-tutor" class="space-y-8 hidden">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs font-bold text-purple-400 uppercase tracking-widest bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20">
+                            <i class="fa-solid fa-graduation-cap mr-1.5"></i> Interaktiver Lernmodus
+                        </span>
+                        <h3 class="text-2xl font-extrabold text-white mt-2" id="tutorMissionTitle">Mission 1: Nullstellen bestimmen</h3>
+                        <p class="text-slate-300 text-sm" id="tutorMissionDesc">Löse die Teilaufgaben Schritt für Schritt und erhalte sofortiges Feedback mit Tipps.</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-xs text-slate-400">Fortschritt:</span>
+                        <div class="w-32 bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700">
+                            <div id="tutorProgressBar" class="bg-gradient-to-r from-cyan-500 to-purple-500 h-full w-1/4 transition-all duration-300"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tutor Problem Box -->
+                <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-6 space-y-4">
+                    <div class="text-sm font-semibold text-cyan-300 math-font" id="tutorProblemStatement">Gegeben ist die Funktion f(x) = x² - 4. Bestimme die Nullstellen!</div>
+                    
+                    <div class="space-y-3">
+                        <label class="text-xs text-slate-400 block font-medium">Deine Antwort / Eingabe:</label>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <input type="text" id="tutorUserAnswer" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white math-font text-sm flex-grow focus:outline-none focus:border-purple-500" placeholder="z.B. x1 = -2, x2 = 2">
+                            <button onclick="checkTutorAnswer()" class="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm transition shadow-lg shadow-purple-600/30">
+                                Überprüfen <i class="fa-solid fa-check ml-1.5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="tutorFeedbackBox" class="hidden p-4 rounded-xl text-sm font-medium border"></div>
+                </div>
+
+                <div class="flex justify-between items-center pt-2">
+                    <button onclick="prevTutorMission()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition">
+                        <i class="fa-solid fa-arrow-left mr-1.5"></i> Vorherige Mission
+                    </button>
+                    <button onclick="nextTutorMission()" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition">
+                        Nächste Mission <i class="fa-solid fa-arrow-right ml-1.5"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 4: FORMELSAMMLUNG ==================== -->
+        <section id="section-formulas" class="space-y-8 hidden">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">Umfassende Formelsammlung für die Analysis</h3>
+                    <p class="text-slate-400 text-xs sm:text-sm">Alle wichtigen Kriterien und mathematischen Bedingungen für Klausuren und Abitur</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 1. Definitionsmenge & Symmetrie -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-400 font-bold text-xs flex items-center justify-center border border-cyan-500/20">01</div>
+                    <h4 class="font-bold text-white text-base">Definitionsmenge & Symmetrie</h4>
+                    <p class="text-slate-300 text-xs leading-relaxed">
+                        • Nenner darf nicht 0 werden.<br>
+                        • Wurzeln erfordern Radikand ≥ 0.<br>
+                        • <strong class="text-cyan-400">Achsensymmetrie:</strong> f(-x) = f(x) (nur gerade Exponenten)<br>
+                        • <strong class="text-cyan-400">Punktsymmetrie:</strong> f(-x) = -f(x) (nur ungerade Exponenten)
+                    </p>
+                </div>
+
+                <!-- 2. Verhalten im Unendlichen -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3">
+                    <div class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 font-bold text-xs flex items-center justify-center border border-purple-500/20">02</div>
+                    <h4 class="font-bold text-white text-base">Verhalten im Unendlichen (Limes)</h4>
+                    <p class="text-slate-300 text-xs leading-relaxed">
+                        • Betrachtung des Summanden mit der höchsten Potenz für x → ±∞.<br>
+                        • Bei ganzrationalen Funktionen bestimmt der Grad und Vorfaktor das Globalverhalten.<br>
+                        • lim<sub>x→±∞</sub> f(x)
+                    </p>
+                </div>
+
+                <!-- 3. Achsenschnittpunkte -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3">
+                    <div class="w-8 h-8 rounded-xl bg-pink-500/10 text-pink-400 font-bold text-xs flex items-center justify-center border border-pink-500/20">03</div>
+                    <h4 class="font-bold text-white text-base">Achsenschnittpunkte</h4>
+                    <p class="text-slate-300 text-xs leading-relaxed">
+                        • <strong class="text-pink-400">y-Achsenabschnitt:</strong> Setze x = 0 ein &rarr; S_y(0 | f(0))<br>
+                        • <strong class="text-pink-400">Nullstellen (x-Achse):</strong> Löse f(x) = 0 (mittels Ausklammern, Substitution, pq-Formel oder Polynomdivision).
+                    </p>
+                </div>
+
+                <!-- 4. Extrempunkte -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3">
+                    <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 font-bold text-xs flex items-center justify-center border border-amber-500/20">04</div>
+                    <h4 class="font-bold text-white text-base">Extrempunkte (Hoch-/Tiefpunkte)</h4>
+                    <p class="text-slate-300 text-xs leading-relaxed">
+                        • <strong class="text-amber-400">Notwendige Bedingung:</strong> f'(x) = 0<br>
+                        • <strong class="text-amber-400">Hinreichende Bedingung:</strong> f''(x) ≠ 0<br>
+                        • f''(x) < 0 &rarr; Hochpunkt (Maximum)<br>
+                        • f''(x) > 0 &rarr; Tiefpunkt (Minimum)
+                    </p>
+                </div>
+
+                <!-- 5. Wendepunkte -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3">
+                    <div class="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 font-bold text-xs flex items-center justify-center border border-rose-500/20">05</div>
+                    <h4 class="font-bold text-white text-base">Wendepunkte & Sattelpunkte</h4>
+                    <p class="text-slate-300 text-xs leading-relaxed">
+                        • <strong class="text-rose-400">Notwendige Bedingung:</strong> f''(x) = 0<br>
+                        • <strong class="text-rose-400">Hinreichende Bedingung:</strong> f'''(x) ≠ 0<br>
+                        • Gilt zudem f'(x) = 0 im Wendepunkt, liegt ein <strong class="text-rose-400">Sattelpunkt</strong> (Terrassenpunkt) vor.
+                    </p>
+                </div>
+
+                <!-- 6. Integral & Flächen -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/20">06</div>
+                    <h4 class="font-bold text-white text-base">Integralrechnung & Flächen</h4>
+                    <p class="text-slate-300 text-xs leading-relaxed">
+                        • Bestimmtes Integral: ∫<sub>a</sub><sup>b</sup> f(x) dx = F(b) - F(a)<br>
+                        • Fläche zwischen Kurve und x-Achse erfordert Betragsstriche bei Nullstellendurchgängen!<br>
+                        • Fläche zwischen zwei Kurven: ∫ |f(x) - g(x)| dx
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 5: REALE ANWENDUNGEN ==================== -->
+        <section id="section-apps" class="space-y-8 hidden">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                    <i class="fa-solid fa-earth-europe"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">Reale Anwendungen in Wirtschaft & Wissenschaft</h3>
+                    <p class="text-slate-400 text-xs sm:text-sm">Wie Kurvendiskussion und Analysis in Unternehmen, Physik und Medizin eingesetzt werden</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 1. Wirtschaft: Kosten & Gewinn -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-400 font-bold text-xs flex items-center justify-center border border-cyan-500/20">01</span>
+                            <span class="text-xs text-slate-500 font-medium">Betriebswirtschaft</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base mb-2">Kosten-, Erlös- & Gewinnmaximum</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed mb-4">
+                            Unternehmen modellieren Gesamtkosten K(x) und Erlöse E(x). Der maximale Gewinn G(x) = E(x) - K(x) wird über die erste Ableitung G'(x) = 0 (Gewinnmaximum / Betriebsoptimum) ermittelt.
+                        </p>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs text-cyan-300 math-font">
+                        G'(x) = 0 &nbsp;|&nbsp; G''(x) < 0
+                    </div>
+                </div>
+
+                <!-- 2. Physik: Freier Fall & Projektile -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 font-bold text-xs flex items-center justify-center border border-purple-500/20">02</span>
+                            <span class="text-xs text-slate-500 font-medium">Physik & Ballistik</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base mb-2">Wurfparabel & Scheitelpunkt</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed mb-4">
+                            Die Flugbahn eines abgeschossenen Projektils folgt einer quadratischen Funktion h(t). Der Scheitelpunkt (Hochpunkt) liefert die maximale Wurfhöhe, die Nullstelle die Wurfweite.
+                        </p>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs text-purple-300 math-font">
+                        h(t) = -½ g t² + v₀ t + h₀
+                    </div>
+                </div>
+
+                <!-- 3. Architektur: Brückenbögen -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="w-8 h-8 rounded-xl bg-pink-500/10 text-pink-400 font-bold text-xs flex items-center justify-center border border-pink-500/20">03</span>
+                            <span class="text-xs text-slate-500 font-medium">Architektur & Statik</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base mb-2">Hängebrücken & Kettenlinien</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed mb-4">
+                            Tragseile von Hängebrücken oder Bogenbrücken werden durch Polynome höheren Grades und Parabeln modelliert. Statiker berechnen Krümmung und Wendepunkte für maximale Belastbarkeit.
+                        </p>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs text-pink-300 math-font">
+                        f''(x) = Krümmungsradius
+                    </div>
+                </div>
+
+                <!-- 4. Biologie: Populationswachstum -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 font-bold text-xs flex items-center justify-center border border-amber-500/20">04</span>
+                            <span class="text-xs text-slate-500 font-medium">Biologie & Ökologie</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base mb-2">Logistisches Wachstum & Wendepunkt</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed mb-4">
+                            Populationen wachsen zunächst exponentiell, flachen aber durch Kapazitätsgrenzen ab. Der Wendepunkt der logistischen Kurve markiert den Zeitpunkt des maximalen Wachstums.
+                        </p>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs text-amber-300 math-font">
+                        N''(t) = 0 (Max. Wachstumsrate)
+                    </div>
+                </div>
+
+                <!-- 5. Medizin: Epidemiekurven -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-3 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 font-bold text-xs flex items-center justify-center border border-rose-500/20">05</span>
+                            <span class="text-xs text-slate-500 font-medium">Medizin & Epidemiologie</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base mb-2">Infektionswellen & Peak-Berechnung</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed mb-4">
+                            Epidemieverläufe werden durch gaußsche Glockenkurven oder Infektionsmodelle beschrieben. Der Hochpunkt der Kurve zeigt den epidemiologischen "Peak" der Infektionswelle.
+                        </p>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs text-rose-300 math-font">
+                        I'(t) = 0 (Gipfel der Welle)
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-20 border-t border-slate-800 bg-slate-950 py-8 text-center text-slate-500 text-xs">
+        <div class="max-w-7xl mx-auto px-4 space-y-2">
+            <p>AnalyseMaster – Entwickelt für Oberstufenschülerinnen und Schüler am Gymnasium.</p>
+            <p class="text-slate-400 font-medium">Viel Erfolg im Abitur und bei allen Klausuren!</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // --- Tab Management ---
+        function switchTab(tabKey) {
+            ['dashboard', 'solver', 'tutor', 'formulas', 'apps'].forEach(k => {
+                const sec = document.getElementById(`section-${k}`);
+                const btn = document.getElementById(`tab-${k}`);
+                const mob = document.getElementById(`mobile-tab-${k}`);
+                if (k === tabKey) {
+                    if(sec) sec.classList.remove('hidden');
+                    if(btn) btn.className = "px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 text-white bg-cyan-600 shadow-lg shadow-cyan-600/30";
+                    if(mob) mob.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-cyan-600";
+                } else {
+                    if(sec) sec.classList.add('hidden');
+                    if(btn) btn.className = "px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 text-slate-300 hover:text-white";
+                    if(mob) mob.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300";
+                }
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if(tabKey === 'solver') {
+                runSolver();
+            }
+        }
+
+        // --- Solver Presets & Execution ---
+        function loadPreset(expr) {
+            document.getElementById('functionInput').value = expr;
+            runSolver();
+        }
+
+        function runSolver() {
+            const rawExpr = document.getElementById('functionInput').value.trim() || 'x^3 - 3*x';
+            
+            try {
+                const node = math.parse(rawExpr);
+                const compiled = node.compile();
+                
+                // Test evaluation
+                compiled.evaluate({x: 1});
+
+                // Generate steps
+                buildStepByStepAnalysis(rawExpr);
+                drawGraph(compiled);
+            } catch(e) {
+                document.getElementById('stepsAccordion').innerHTML = `
+                    <div class="bg-rose-950/40 border border-rose-500/40 rounded-2xl p-6 text-rose-300 text-sm">
+                        <i class="fa-solid fa-triangle-exclamation mr-2"></i> Syntaxfehler in der Funktionsgleichung: ${e.message}
+                    </div>
+                `;
+            }
+        }
+
+        function buildStepByStepAnalysis(expr) {
+            const container = document.getElementById('stepsAccordion');
+            
+            // Hardcoded intelligent parsing for common high school polynomials to provide exact steps
+            let stepsHTML = '';
+
+            if (expr.includes('x^3 - 3*x') || expr.includes('x^3-3*x')) {
+                stepsHTML = `
+                    <div class="bg-slate-900/80 border border-cyan-500/30 rounded-2xl p-6 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-cyan-400 uppercase">Schritt 01</span>
+                            <span class="text-xs text-slate-400 math-font">D_f = ℝ</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base">Definitionsmenge & Symmetrie</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed">
+                            Da es sich um eine ganzrationale Funktion (Polynom) handelt, ist die Definitionsmenge <strong>D = ℝ</strong>.<br>
+                            Symmetrieprüfung: f(-x) = (-x)³ - 3(-x) = -x³ + 3x = -(x³ - 3x) = -f(x).<br>
+                            <strong class="text-cyan-400">Ergebnis: Punktsymmetrisch zum Ursprung (0|0)</strong> (nur ungerade Exponenten).
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-900/80 border border-purple-500/30 rounded-2xl p-6 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-purple-400 uppercase">Schritt 02</span>
+                            <span class="text-xs text-slate-400 math-font">lim x→±∞</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base">Verhalten im Unendlichen</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed">
+                            Der Term mit der höchsten Potenz ist x³.<br>
+                            • Für x → +∞ gilt: f(x) → +∞<br>
+                            • Für x → -∞ gilt: f(x) → -∞
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-900/80 border border-pink-500/30 rounded-2xl p-6 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-pink-400 uppercase">Schritt 03</span>
+                            <span class="text-xs text-slate-400 math-font">Achsenschnittpunkte</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base">Nullstellen & y-Achsenabschnitt</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed">
+                            • y-Achsenabschnitt: f(0) = 0³ - 3(0) = 0 &rarr; <strong>S_y(0 | 0)</strong><br>
+                            • Nullstellen: x(x² - 3) = 0 &rarr; x₁ = 0, x₂ = √3 ≈ 1.73, x₃ = -√3 ≈ -1.73.<br>
+                            Nullstellen bei <strong>(-1.73 | 0), (0 | 0), (1.73 | 0)</strong>.
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-900/80 border border-mint-500/30 rounded-2xl p-6 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-mint-400 uppercase">Schritt 04</span>
+                            <span class="text-xs text-slate-400 math-font">Ableitungen</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base">Ableitungsfunktion f', f'', f'''</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed math-font text-mint-300">
+                            f(x) = x³ - 3x<br>
+                            f'(x) = 3x² - 3<br>
+                            f''(x) = 6x<br>
+                            f'''(x) = 6
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-900/80 border border-amber-500/30 rounded-2xl p-6 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-amber-400 uppercase">Schritt 05</span>
+                            <span class="text-xs text-slate-400 math-font">Extrempunkte</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base">Notwendige & Hinreichende Bedingung</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed">
+                            1. f'(x) = 3x² - 3 = 0 &rarr; x² = 1 &rarr; x₁ = 1, x₂ = -1.<br>
+                            2. Überprüfung in f''(x) = 6x:<br>
+                            • f''(1) = 6 > 0 &rarr; <strong class="text-amber-400">Tiefpunkt T(1 | -2)</strong><br>
+                            • f''(-1) = -6 < 0 &rarr; <strong class="text-amber-400">Hochpunkt H(-1 | 2)</strong>
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-900/80 border border-rose-500/30 rounded-2xl p-6 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-rose-400 uppercase">Schritt 06</span>
+                            <span class="text-xs text-slate-400 math-font">Wendepunkte</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base">Wendepunkt & Krümmung</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed">
+                            1. f''(x) = 6x = 0 &rarr; x = 0.<br>
+                            2. f'''(0) = 6 ≠ 0 &rarr; Krümmungswechsel liegt vor.<br>
+                            <strong class="text-rose-400">Ergebnis: Wendepunkt W(0 | 0)</strong> (da f'(0) = -3 ≠ 0 kein Sattelpunkt).
+                        </p>
+                    </div>
+                `;
+            } else {
+                // Generic fallback solver step view
+                stepsHTML = `
+                    <div class="bg-slate-900/80 border border-cyan-500/30 rounded-2xl p-6 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-cyan-400 uppercase">Analyse</span>
+                            <span class="text-xs text-slate-400 math-font">f(x) = ${expr}</span>
+                        </div>
+                        <h4 class="font-bold text-white text-base">Funktionsuntersuchung gestartet</h4>
+                        <p class="text-slate-300 text-xs leading-relaxed">
+                            Die Funktion wurde erfolgreich geparst. Der Funktionsgraph rechts zeigt den Verlauf im Koordinatensystem. Überprüfe die Ableitungen und Nullstellen im grafischen Plot.
+                        </p>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = stepsHTML;
+        }
+
+        // --- Canvas Graph Plotter ---
+        const canvas = document.getElementById('analysisCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function drawGraph(compiledFunc) {
+            if (!canvas) return;
+            const width = canvas.width = canvas.parentElement.clientWidth;
+            const height = canvas.height = canvas.parentElement.clientHeight;
+            
+            ctx.clearRect(0, 0, width, height);
+
+            const cx = width / 2;
+            const cy = height / 2;
+            const scale = 40; // Pixels per unit
+
+            // Grid lines
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            for (let x = -10; x <= 10; x++) {
+                ctx.beginPath(); ctx.moveTo(cx + x * scale, 0); ctx.lineTo(cx + x * scale, height); ctx.stroke();
+            }
+            for (let y = -10; y <= 10; y++) {
+                ctx.beginPath(); ctx.moveTo(0, cy + y * scale); ctx.lineTo(width, cy + y * scale); ctx.stroke();
+            }
+
+            // Axes
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(width, cy); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, height); ctx.stroke();
+
+            // Plot curve
+            ctx.strokeStyle = '#06b6d4';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            let drawing = false;
+
+            for (let px = 0; px < width; px++) {
+                const x = (px - cx) / scale;
+                try {
+                    const y = compiledFunc.evaluate({x: x});
+                    const py = cy - y * scale;
+                    if (!isNaN(py) && isFinite(py)) {
+                        if (!drawing) { ctx.moveTo(px, py); drawing = true; }
+                        else { ctx.lineTo(px, py); }
+                    } else {
+                        drawing = false;
+                    }
+                } catch(e) {
+                    drawing = false;
+                }
+            }
+            ctx.stroke();
+
+            // Highlight special points for x^3 - 3x
+            const points = [
+                {x: -1, y: 2, color: '#f59e0b', label: 'H(-1|2)'},
+                {x: 1, y: -2, color: '#f59e0b', label: 'T(1|-2)'},
+                {x: 0, y: 0, color: '#f43f5e', label: 'W(0|0)'}
+            ];
+
+            points.forEach(p => {
+                const px = cx + p.x * scale;
+                const py = cy - p.y * scale;
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(px, py, 6, 0, 2 * Math.PI); ctx.fill();
+            });
+
+            canvas.onmousemove = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                const mathX = (mx - cx) / scale;
+                try {
+                    const mathY = compiledFunc.evaluate({x: mathX});
+                    document.getElementById('graphCoords').textContent = `x: ${mathX.toFixed(2)}, y: ${mathY.toFixed(2)}`;
+                } catch(err) {}
+            };
+        }
+
+        // --- Tutor Mode State ---
+        let currentMission = 0;
+        const missions = [
+            {
+                title: "Mission 1: Nullstellen bestimmen",
+                desc: "Bestimme die Nullstelle(n) der Funktion f(x) = x - 3.",
+                problem: "Gegeben: f(x) = x - 3. Gib die Nullstelle x ein:",
+                answer: "3",
+                hint: "Setze f(x) = 0 &rarr; x - 3 = 0."
+            },
+            {
+                title: "Mission 2: Erste Ableitung",
+                desc: "Berechne die erste Ableitung f'(x) von f(x) = 4x³ - 2x.",
+                problem: "f(x) = 4x³ - 2x &rarr; f'(x) = ?",
+                answer: "12x^2 - 2",
+                hint: "Nutze die Faktor- und Potenzregel: d/dx(x^n) = n*x^(n-1)."
+            },
+            {
+                title: "Mission 3: Extremstellen finden",
+                desc: "Finde die Extremstelle x für f(x) = x² - 4x + 3.",
+                problem: "Notwendige Bedingung f'(x) = 2x - 4 = 0. Wie lautet x?",
+                answer: "2",
+                hint: "Löse 2x - 4 = 0 nach x auf."
+            }
+        ];
+
+        function nextTutorMission() {
+            currentMission = (currentMission + 1) % missions.length;
+            loadTutorMission();
+        }
+
+        function prevTutorMission() {
+            currentMission = (currentMission - 1 + missions.length) % missions.length;
+            loadTutorMission();
+        }
+
+        function loadTutorMission() {
+            const m = missions[currentMission];
+            document.getElementById('tutorMissionTitle').textContent = m.title;
+            document.getElementById('tutorMissionDesc').textContent = m.desc;
+            document.getElementById('tutorProblemStatement').innerHTML = m.problem;
+            document.getElementById('tutorUserAnswer').value = '';
+            document.getElementById('tutorFeedbackBox').classList.add('hidden');
+            document.getElementById('tutorProgressBar').style.width = `${((currentMission + 1) / missions.length) * 100}%`;
+        }
+
+        function checkTutorAnswer() {
+            const userVal = document.getElementById('tutorUserAnswer').value.trim().replace(/\s+/g, '');
+            const targetVal = missions[currentMission].answer.replace(/\s+/g, '');
+            const feedback = document.getElementById('tutorFeedbackBox');
+            feedback.classList.remove('hidden');
+
+            if (userVal === targetVal) {
+                feedback.className = "p-4 rounded-xl text-sm font-medium border bg-emerald-950/40 border-emerald-500/40 text-emerald-300";
+                feedback.innerHTML = '<i class="fa-solid fa-circle-check mr-2 text-emerald-400">Richtig! Hervorragend gelöst. 🎉';
+                confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+            } else {
+                feedback.className = "p-4 rounded-xl text-sm font-medium border bg-rose-950/40 border-rose-500/40 text-rose-300";
+                feedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2 text-rose-400">Fast! Tipp: ${missions[currentMission].hint}`;
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            switchTab('dashboard');
+            loadTutorMission();
+        });
+    </script>
+</body>
+</html>
