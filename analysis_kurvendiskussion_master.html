@@ -520,36 +520,77 @@
             runSolver();
         }
 
+        // Robust polynomial analysis helper using math.js derivatives and evaluations
         function runSolver() {
             const rawExpr = document.getElementById('functionInput').value.trim() || 'x^3 - 3*x';
+            const container = document.getElementById('stepsAccordion');
             
             try {
+                // Parse expression
                 const node = math.parse(rawExpr);
                 const compiled = node.compile();
                 
-                // Test evaluation
+                // Numerical test
                 compiled.evaluate({x: 1});
 
-                // Generate steps
-                buildStepByStepAnalysis(rawExpr);
-                drawGraph(compiled);
-            } catch(e) {
-                document.getElementById('stepsAccordion').innerHTML = `
-                    <div class="bg-rose-950/40 border border-rose-500/40 rounded-2xl p-6 text-rose-300 text-sm">
-                        <i class="fa-solid fa-triangle-exclamation mr-2"></i> Syntaxfehler in der Funktionsgleichung: ${e.message}
-                    </div>
-                `;
-            }
-        }
+                // Compute symbolic / numerical derivatives via math.js
+                const deriv1 = math.derivative(node, 'x');
+                const deriv2 = math.derivative(deriv1, 'x');
+                const deriv3 = math.derivative(deriv2, 'x');
 
-        function buildStepByStepAnalysis(expr) {
-            const container = document.getElementById('stepsAccordion');
-            
-            // Hardcoded intelligent parsing for common high school polynomials to provide exact steps
-            let stepsHTML = '';
+                const compDeriv1 = deriv1.compile();
+                const compDeriv2 = deriv2.compile();
+                const compDeriv3 = deriv3.compile();
 
-            if (expr.includes('x^3 - 3*x') || expr.includes('x^3-3*x')) {
-                stepsHTML = `
+                // Find roots (Nullstellen) numerically between -10 and 10
+                let roots = [];
+                let prevX = -10;
+                let prevY = compiled.evaluate({x: prevX});
+                for (let x = -9.9; x <= 10; x += 0.1) {
+                    let y = compiled.evaluate({x: x});
+                    if (Math.abs(y) < 0.001) {
+                        roots.push(x.toFixed(2));
+                    } else if (prevY * y < 0) {
+                        // Sign change root refinement
+                        let r = x - 0.05;
+                        roots.push(r.toFixed(2));
+                    }
+                    prevX = x;
+                    prevY = y;
+                }
+                // Deduplicate roots
+                roots = [...new Set(roots)];
+
+                // Find Extremes (f'(x) = 0)
+                let extrema = [];
+                for (let x = -10; x <= 10; x += 0.05) {
+                    let d1 = compDeriv1.evaluate({x: x});
+                    if (Math.abs(d1) < 0.02) {
+                        let y = compiled.evaluate({x: x});
+                        let d2 = compDeriv2.evaluate({x: x});
+                        let type = d2 < 0 ? 'Hochpunkt (Maximum)' : (d2 > 0 ? 'Tiefpunkt (Minimum)' : 'Sattelpunkt / Extremum');
+                        extrema.push({x: x.toFixed(2), y: y.toFixed(2), type: type});
+                    }
+                }
+                // Deduplicate close extrema
+                extrema = extrema.filter((ext, idx, arr) => idx === 0 || Math.abs(ext.x - arr[idx-1].x) > 0.3);
+
+                // Find Inflection Points (f''(x) = 0)
+                let inflection = [];
+                for (let x = -10; x <= 10; x += 0.05) {
+                    let d2 = compDeriv2.evaluate({x: x});
+                    if (Math.abs(d2) < 0.02) {
+                        let y = compiled.evaluate({x: x});
+                        let d3 = compDeriv3.evaluate({x: x});
+                        if (Math.abs(d3) > 0.01) {
+                            inflection.push({x: x.toFixed(2), y: y.toFixed(2)});
+                        }
+                    }
+                }
+                inflection = inflection.filter((inf, idx, arr) => idx === 0 || Math.abs(inf.x - arr[idx-1].x) > 0.3);
+
+                // Build Dynamic Step-by-Step HTML
+                let stepsHTML = `
                     <div class="bg-slate-900/80 border border-cyan-500/30 rounded-2xl p-6 space-y-3">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-bold text-cyan-400 uppercase">Schritt 01</span>
@@ -557,9 +598,9 @@
                         </div>
                         <h4 class="font-bold text-white text-base">Definitionsmenge & Symmetrie</h4>
                         <p class="text-slate-300 text-xs leading-relaxed">
-                            Da es sich um eine ganzrationale Funktion (Polynom) handelt, ist die Definitionsmenge <strong>D = ℝ</strong>.<br>
-                            Symmetrieprüfung: f(-x) = (-x)³ - 3(-x) = -x³ + 3x = -(x³ - 3x) = -f(x).<br>
-                            <strong class="text-cyan-400">Ergebnis: Punktsymmetrisch zum Ursprung (0|0)</strong> (nur ungerade Exponenten).
+                            Gegebene Funktion: <strong class="text-cyan-400 math-font">f(x) = ${rawExpr}</strong>.<br>
+                            Da keine Definitionslücken (wie Nenner null oder Logarithmus von negativen Zahlen) vorliegen, ist die Definitionsmenge <strong>D = ℝ</strong>.<br>
+                            Symmetrie: Überprüfung von f(-x) ergibt, ob Achsensymmetrie zur y-Achse oder Punktsymmetrie zum Ursprung vorliegt.
                         </p>
                     </div>
 
@@ -570,22 +611,21 @@
                         </div>
                         <h4 class="font-bold text-white text-base">Verhalten im Unendlichen</h4>
                         <p class="text-slate-300 text-xs leading-relaxed">
-                            Der Term mit der höchsten Potenz ist x³.<br>
-                            • Für x → +∞ gilt: f(x) → +∞<br>
-                            • Für x → -∞ gilt: f(x) → -∞
+                            Grenzwertbetrachtung für große x-Werte:<br>
+                            • Für x → +∞: f(x) ≈ ${compiled.evaluate({x: 10}) > 0 ? '+∞' : '-∞'}<br>
+                            • Für x → -∞: f(x) ≈ ${compiled.evaluate({x: -10}) > 0 ? '+∞' : '-∞'}
                         </p>
                     </div>
 
                     <div class="bg-slate-900/80 border border-pink-500/30 rounded-2xl p-6 space-y-3">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-bold text-pink-400 uppercase">Schritt 03</span>
-                            <span class="text-xs text-slate-400 math-font">Achsenschnittpunkte</span>
+                            <span class="text-xs text-slate-400 math-font">Nullstellen & y-Achsenabschnitt</span>
                         </div>
-                        <h4 class="font-bold text-white text-base">Nullstellen & y-Achsenabschnitt</h4>
+                        <h4 class="font-bold text-white text-base">Achsenschnittpunkte</h4>
                         <p class="text-slate-300 text-xs leading-relaxed">
-                            • y-Achsenabschnitt: f(0) = 0³ - 3(0) = 0 &rarr; <strong>S_y(0 | 0)</strong><br>
-                            • Nullstellen: x(x² - 3) = 0 &rarr; x₁ = 0, x₂ = √3 ≈ 1.73, x₃ = -√3 ≈ -1.73.<br>
-                            Nullstellen bei <strong>(-1.73 | 0), (0 | 0), (1.73 | 0)</strong>.
+                            • y-Achsenabschnitt (x = 0): <strong class="text-pink-400">S_y(0 | ${compiled.evaluate({x: 0}).toFixed(2)})</strong><br>
+                            • Nullstellen (f(x) = 0): ${roots.length > 0 ? 'Gefundene Stellen bei x ≈ ' + roots.join(', ') : 'Keine reellen Nullstellen im Intervall [-10, 10].'}
                         </p>
                     </div>
 
@@ -594,12 +634,12 @@
                             <span class="text-xs font-bold text-mint-400 uppercase">Schritt 04</span>
                             <span class="text-xs text-slate-400 math-font">Ableitungen</span>
                         </div>
-                        <h4 class="font-bold text-white text-base">Ableitungsfunktion f', f'', f'''</h4>
+                        <h4 class="font-bold text-white text-base">Ableitungsfunktionen</h4>
                         <p class="text-slate-300 text-xs leading-relaxed math-font text-mint-300">
-                            f(x) = x³ - 3x<br>
-                            f'(x) = 3x² - 3<br>
-                            f''(x) = 6x<br>
-                            f'''(x) = 6
+                            f(x) = ${rawExpr}<br>
+                            f'(x) = ${deriv1.toString()}<br>
+                            f''(x) = ${deriv2.toString()}<br>
+                            f'''(x) = ${deriv3.toString()}
                         </p>
                     </div>
 
@@ -610,10 +650,8 @@
                         </div>
                         <h4 class="font-bold text-white text-base">Notwendige & Hinreichende Bedingung</h4>
                         <p class="text-slate-300 text-xs leading-relaxed">
-                            1. f'(x) = 3x² - 3 = 0 &rarr; x² = 1 &rarr; x₁ = 1, x₂ = -1.<br>
-                            2. Überprüfung in f''(x) = 6x:<br>
-                            • f''(1) = 6 > 0 &rarr; <strong class="text-amber-400">Tiefpunkt T(1 | -2)</strong><br>
-                            • f''(-1) = -6 < 0 &rarr; <strong class="text-amber-400">Hochpunkt H(-1 | 2)</strong>
+                            Lösung von f'(x) = 0 und Prüfung mit f''(x):<br>
+                            ${extrema.length > 0 ? extrema.map(e => `• <strong>${e.type}</strong> bei P(${e.x} | ${e.y})`).join('<br>') : 'Keine Extrempunkte im Intervall.'}
                         </p>
                     </div>
 
@@ -624,29 +662,22 @@
                         </div>
                         <h4 class="font-bold text-white text-base">Wendepunkt & Krümmung</h4>
                         <p class="text-slate-300 text-xs leading-relaxed">
-                            1. f''(x) = 6x = 0 &rarr; x = 0.<br>
-                            2. f'''(0) = 6 ≠ 0 &rarr; Krümmungswechsel liegt vor.<br>
-                            <strong class="text-rose-400">Ergebnis: Wendepunkt W(0 | 0)</strong> (da f'(0) = -3 ≠ 0 kein Sattelpunkt).
+                            Lösung von f''(x) = 0 mit f'''(x) ≠ 0:<br>
+                            ${inflection.length > 0 ? inflection.map(i => `• <strong>Wendepunkt</strong> bei W(${i.x} | ${i.y})`).join('<br>') : 'Keine Wendepunkte im Intervall.'}
                         </p>
                     </div>
                 `;
-            } else {
-                // Generic fallback solver step view
-                stepsHTML = `
-                    <div class="bg-slate-900/80 border border-cyan-500/30 rounded-2xl p-6 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-cyan-400 uppercase">Analyse</span>
-                            <span class="text-xs text-slate-400 math-font">f(x) = ${expr}</span>
-                        </div>
-                        <h4 class="font-bold text-white text-base">Funktionsuntersuchung gestartet</h4>
-                        <p class="text-slate-300 text-xs leading-relaxed">
-                            Die Funktion wurde erfolgreich geparst. Der Funktionsgraph rechts zeigt den Verlauf im Koordinatensystem. Überprüfe die Ableitungen und Nullstellen im grafischen Plot.
-                        </p>
+
+                container.innerHTML = stepsHTML;
+                drawGraph(compiled);
+
+            } catch(e) {
+                container.innerHTML = `
+                    <div class="bg-rose-950/40 border border-rose-500/40 rounded-2xl p-6 text-rose-300 text-sm">
+                        <i class="fa-solid fa-triangle-exclamation mr-2"></i> Berechnungsfehler oder ungültiger Ausdruck: ${e.message}
                     </div>
                 `;
             }
-
-            container.innerHTML = stepsHTML;
         }
 
         // --- Canvas Graph Plotter ---
