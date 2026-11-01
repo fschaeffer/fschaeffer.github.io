@@ -143,7 +143,7 @@ function tutorDisplay(){$("#tutorQuestion").textContent=tutorPrompts[tutorIndex]
 function tutorCheck(){let val=$("#tutorAnswer").value.trim();if(!val){$("#tutorFeedback").textContent="Schreibe zuerst eine Antwort.";return}let keywords=tutorPrompts[tutorIndex][1].toLowerCase().split(/[,;. ]+/).filter(x=>x.length>4);let hit=keywords.filter(k=>val.toLowerCase().includes(k)).length;let good=hit>=Math.min(2,keywords.length);if(good)tutorScore++;$("#tutorFeedback").innerHTML=`<span class="${good?'good':'bad'}">${good?'Gute Antwort – wichtige Stichwörter erkannt.':'Ergänze deine Antwort noch.'}</span><br><b>Musterantwort:</b> ${tutorPrompts[tutorIndex][1]}`;$("#tutorNext").disabled=false;speak(tutorPrompts[tutorIndex][1])}
 function tutorNext(){if(tutorIndex<tutorPrompts.length-1){tutorIndex++;$("#tutorAnswer").value="";$("#tutorFeedback").textContent="";$("#tutorNext").disabled=true;tutorDisplay()}else{$("#chat").innerHTML=`<div class="bubble bot"><b>Abfrage beendet!</b><br>Erkannte gute Antworten: ${tutorScore} von ${tutorPrompts.length}. Nutze die Musterantworten zum Nachlernen und starte die Abfrage erneut.</div>`;$("#tutorAnswer").style.display="none";$("#tutorNext").style.display="none"}}
 function speak(t){if(!('speechSynthesis'in window)){alert("Sprachausgabe wird von diesem Browser nicht unterstützt.");return}speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(t);u.lang="de-DE";speechSynthesis.speak(u)}
-function playTone(freq=440){try{let ctx=new(window.AudioContext||window.webkitAudioContext)(),o=ctx.createOscillator(),g=ctx.createGain();o.type="triangle";o.frequency.value=freq;g.gain.setValueAtTime(.0001,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.15,ctx.currentTime+.03);g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.65);o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+.7)}catch(e){alert("Audioausgabe nicht verfügbar.")}}
+function playTone(freq=440){playNotes([69+12*Math.log2(freq/440)],.65)}
 nav();updateProgress();showOverview();
 
 // ===== Version 2: Noteneditor, virtuelle Klaviatur und Kadenz-Labor =====
@@ -154,8 +154,35 @@ const CHORD_TYPES={
 };
 let labRoot="C",labType="Dur",staffNotes=[],cadence=["I","IV","V","I"];
 function pitchName(n){return NOTE_NAMES[(n%12+12)%12]}
+let audioCtx=null;
+async function getAudioContext(){
+ const AC=window.AudioContext||window.webkitAudioContext;
+ if(!AC) throw new Error("Web Audio API wird nicht unterstützt.");
+ if(!audioCtx) audioCtx=new AC();
+ if(audioCtx.state==="suspended") await audioCtx.resume();
+ return audioCtx;
+}
 function pitchFreq(n){return 440*Math.pow(2,(n-69)/12)}
-function tone(n,dur=.55){try{let c=new(window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.type="triangle";o.frequency.value=pitchFreq(n);g.gain.setValueAtTime(.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(.12,c.currentTime+.025);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+dur);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+dur+.02)}catch(e){alert("Audioausgabe ist in diesem Browser nicht verfügbar.")}}
+async function playNotes(notes,dur=.65,spacing=0){
+ try{
+  const ctx=await getAudioContext();
+  const start=ctx.currentTime+.04;
+  notes.forEach((item,i)=>{
+   const midi=typeof item==="number"?item:item.note;
+   const at=start+(spacing?i*spacing:0);
+   const length=typeof item==="number"?dur:(item.dur||dur);
+   const osc=ctx.createOscillator(),gain=ctx.createGain();
+   osc.type="triangle";osc.frequency.setValueAtTime(pitchFreq(midi),at);
+   gain.gain.setValueAtTime(.0001,at);
+   gain.gain.linearRampToValueAtTime(.105,at+.035);
+   gain.gain.setValueAtTime(.105,Math.max(at+.04,at+length-.07));
+   gain.gain.linearRampToValueAtTime(.0001,at+length);
+   osc.connect(gain);gain.connect(ctx.destination);
+   osc.start(at);osc.stop(at+length+.02);
+  });
+ }catch(e){alert("Tonwiedergabe nicht verfügbar. Bitte tippe erneut auf „Anhören“ und prüfe, ob dein Browser Ton zulässt.")}
+}
+function tone(n,dur=.55){return playNotes([n],dur)}
 function rootMidi(){return 60+NOTE_NAMES.indexOf(labRoot)}
 function chordMidi(){return CHORD_TYPES[labType].map(x=>rootMidi()+x)}
 function showWorkshop(){
@@ -166,8 +193,8 @@ function showWorkshop(){
  refreshLab();drawKeyboard();drawStaff();
 }
 function refreshLab(){let tones=chordMidi();$("#labResult").innerHTML=`<div class="chordnotes">${tones.map((m,i)=>`<span>${pitchName(m%12)}${Math.floor(m/12)-1}</span>`).join("")}</div><p><b>Intervallstruktur:</b> ${CHORD_TYPES[labType].map((v,i)=>i===0?"Grundton":(v-CHORD_TYPES[labType][i-1])+" HT").join(" · ")}</p><button class="secondary" onclick="speak('${labRoot} ${labType}: ${tones.map(m=>pitchName(m%12)).join(", ")}')">🔊 Akkord benennen lassen</button>`}
-function playChord(){chordMidi().forEach((m,i)=>setTimeout(()=>tone(m,.9),i*35))}
-function playArpeggio(){chordMidi().forEach((m,i)=>setTimeout(()=>tone(m,.42),i*430))}
+function playChord(){playNotes(chordMidi(),1.05)}
+function playArpeggio(){playNotes(chordMidi(),.42,.48)}
 function drawKeyboard(){let el=$("#keyboard");if(!el)return;let whites=[0,2,4,5,7,9,11,12],names=["C","D","E","F","G","A","H","C"];el.innerHTML=whites.map((v,i)=>`<button class="whitekey" onclick="tone(${60+v})">${names[i]}</button>`).join("");let black=[{x:9.2,n:61,l:"C♯"},{x:21.7,n:63,l:"D♯"},{x:46.7,n:66,l:"F♯"},{x:59.2,n:68,l:"G♯"},{x:71.7,n:70,l:"A♯"}];black.forEach(k=>{let b=document.createElement("button");b.className="blackkey";b.style.left=k.x+"%";b.textContent=k.l;b.onclick=()=>tone(k.n);el.appendChild(b)})}
 function drawStaff(){let svg=$("#staffEditor");if(!svg)return;let y0=125,step=12;let lines=[77,89,101,113,125];svg.innerHTML=lines.map(y=>`<line x1="48" y1="${y}" x2="690" y2="${y}" stroke="#333" stroke-width="1.4"/>`).join("")+`<text x="8" y="126" font-size="58" fill="#333">𝄞</text><text x="50" y="24" font-size="12" fill="#64718a">Violinschlüssel · klicke zum Eintragen</text>`;
  for(let x=120;x<=680;x+=80)svg.innerHTML+=`<line x1="${x}" y1="77" x2="${x}" y2="125" stroke="#e5e8ef"/>`;
@@ -175,7 +202,7 @@ function drawStaff(){let svg=$("#staffEditor");if(!svg)return;let y0=125,step=12
  svg.onclick=e=>{let r=svg.getBoundingClientRect(),y=(e.clientY-r.top)*190/r.height;let step=Math.max(-5,Math.min(15,Math.round((125-y)/6)));let letter=["E","F","G","A","H","C","D"][((step%7)+7)%7];let oct=4+Math.floor((step+2)/7);let nm=letter+(oct);staffNotes.push({step,name:nm});drawStaff();$("#staffFeedback").textContent=`Note eingetragen: ${nm}`};
 }
 function checkStaff(){let target=chordMidi().map(m=>pitchName(m%12));let entered=staffNotes.map(n=>n.name[0]);let match=entered.length>0&&entered.every(n=>target.includes(n==="H"?"H":n));$("#staffFeedback").innerHTML=match?'<span class="good">Deine eingetragenen Notennamen passen zum aktuellen Akkord (vereinfachte Prüfung).</span>':'<span class="bad">Noch keine vollständige Übereinstimmung erkannt. Vergleiche die Notennamen mit den Akkordtönen oben.</span>'}
-function playStaff(){staffNotes.forEach((n,i)=>{let letter=n.name[0],map={C:0,D:2,E:4,F:5,G:7,A:9,H:11};let oct=parseInt(n.name.slice(1))||4;setTimeout(()=>tone(12*(oct+1)+map[letter]),i*450)})}
+function playStaff(){let map={C:0,D:2,E:4,F:5,G:7,A:9,H:11};playNotes(staffNotes.map(n=>12*((parseInt(n.name.slice(1))||4)+1)+map[n.name[0]]),.38,.45)}
 function showCadenceLab(){
  const funcs=["I","ii","iii","IV","V","vi","vii°"];
  $("#main").innerHTML=`<section class="hero"><span class="pill">VERSION 2 · HARMONISCHES HÖREN</span><h2>🎼 Kadenz-Labor</h2><p>Stelle eine Akkordfolge zusammen, höre sie an und prüfe, ob die Hauptfunktionen in der richtigen Reihenfolge stehen.</p></section>
@@ -186,6 +213,31 @@ function showCadenceLab(){
 }
 function drawCadence(){let f=["I","ii","iii","IV","V","vi","vii°"];$("#cadSlots").innerHTML=cadence.map((v,i)=>`<div class="tile"><b>Position ${i+1}</b><select onchange="cadence[${i}]=this.value">${f.map(x=>`<option ${x===v?'selected':''}>${x}</option>`).join("")}</select></div>`).join("")}
 function checkCadence(){let ok=cadence.join("-")==="I-IV-V-I";$("#cadFeedback").innerHTML=ok?'<span class="good">Sehr gut! I–IV–V–I: Tonika – Subdominante – Dominante – Tonika.</span>':'<span class="bad">Noch nicht die einfache Kadenz. Gesucht ist I – IV – V – I. Überlege: Ausgangspunkt, Weg zur Dominante, Rückkehr zur Tonika.</span>';if(ok)speak("Richtig. Tonika, Subdominante, Dominante, Tonika.")}
-function playCadence(){let roots={"C-Dur":[60,65,67,60],"G-Dur":[67,60,62,67],"D-Dur":[62,67,69,62],"F-Dur":[65,70,72,65],"a-Moll":[69,74,76,69],"e-Moll":[64,69,71,64],"d-Moll":[62,67,69,62]};let r=roots[$("#cadKey").value]||roots["C-Dur"];let semis={"I":[0,4,7],"ii":[2,5,9],"iii":[4,7,11],"IV":[5,9,12],"V":[7,11,14],"vi":[9,12,16],"vii°":[11,14,17]};cadence.forEach((f,i)=>{let root=r[i];(semis[f]||semis.I).forEach((v,j)=>setTimeout(()=>tone(root+v,.75),i*950+j*25))})}
+function playCadence(){
+ const keys={"C-Dur":{t:60,minor:false},"G-Dur":{t:67,minor:false},"D-Dur":{t:62,minor:false},"F-Dur":{t:65,minor:false},"a-Moll":{t:69,minor:true},"e-Moll":{t:64,minor:true},"d-Moll":{t:62,minor:true}};
+ const k=keys[$("#cadKey").value]||keys["C-Dur"];
+ const degree={"I":0,"ii":2,"iii":4,"IV":5,"V":7,"vi":9,"vii°":11};
+ const minorThird={"I":k.minor,"ii":true,"iii":true,"IV":k.minor,"V":false,"vi":k.minor,"vii°":true};
+ const diminished={"vii°":true};
+ const notes=[];
+ cadence.forEach((f,i)=>{
+  const root=k.t+(degree[f]??0);
+  const intervals=diminished[f]?[0,3,6]:(minorThird[f]?[0,3,7]:[0,4,7]);
+  intervals.forEach(v=>notes.push({note:root+v,dur:.82,delay:i*1.02}));
+ });
+ playCadenceBlocks(notes);
+}
+async function playCadenceBlocks(notes){
+ try{
+  const ctx=await getAudioContext(),start=ctx.currentTime+.04;
+  notes.forEach(({note,dur,delay})=>{
+   const at=start+delay,osc=ctx.createOscillator(),gain=ctx.createGain();
+   osc.type="triangle";osc.frequency.setValueAtTime(pitchFreq(note),at);
+   gain.gain.setValueAtTime(.0001,at);gain.gain.linearRampToValueAtTime(.095,at+.035);
+   gain.gain.setValueAtTime(.095,at+dur-.07);gain.gain.linearRampToValueAtTime(.0001,at+dur);
+   osc.connect(gain);gain.connect(ctx.destination);osc.start(at);osc.stop(at+dur+.02);
+  });
+ }catch(e){alert("Tonwiedergabe nicht verfügbar. Bitte tippe erneut auf „Anhören“.")}
+}
 
 </script></body></html>
