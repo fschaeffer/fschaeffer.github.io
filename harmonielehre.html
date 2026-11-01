@@ -51,4 +51,359 @@
             padding: 0.5rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: sticky;
-            top:
+            top: 0;
+            z-index: 100;
+        }
+
+        nav button {
+            background: none;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.3s, color 0.3s;
+            border-radius: 4px;
+            margin: 2px;
+        }
+
+        nav button:hover, nav button.active {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 20px;
+        }
+
+        .tab-content {
+            display: none;
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            color: var(--primary);
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 8px;
+            margin-top: 0;
+        }
+
+        h3 {
+            color: #2980b9;
+        }
+
+        .card {
+            background: #f9f9f9;
+            border-left: 4px solid var(--secondary);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 var(--border-radius) var(--border-radius) 0;
+        }
+
+        button.action-btn {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+            margin: 5px 0;
+        }
+
+        button.action-btn:hover {
+            background-color: #16a085;
+        }
+
+        .quiz-option {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 10px 15px;
+            margin: 8px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quiz-option:hover {
+            background-color: #edf2f7;
+            border-color: var(--secondary);
+        }
+
+        .quiz-option.correct {
+            background-color: #d4edda !important;
+            border-color: #c3e6cb !important;
+            color: #155724;
+        }
+
+        .quiz-option.incorrect {
+            background-color: #f8d7da !important;
+            border-color: #f5c6cb !important;
+            color: #721c24;
+        }
+
+        .feedback {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        table.glossar-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        table.glossar-table th, table.glossar-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        table.glossar-table th {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        table.glossar-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .quint-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .quint-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            text-align: center;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .quint-card:hover {
+            border-color: var(--secondary);
+            background: #eefcf9;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Harmonielehre Lern-App (Sek II)</h1>
+    <p>Dreiklänge, Intervalle, Kadenzen & mehr[cite: 1]</p>
+</header>
+
+<nav>
+    <button class="tab-btn active" onclick="openTab(event, 'home')">Startseite</button>
+    <button class="tab-btn" onclick="openTab(event, 'glossar')">Glossar</button>
+    <button class="tab-btn" onclick="openTab(event, 'm1')">M1: Intervalle</button>
+    <button class="tab-btn" onclick="openTab(event, 'm2')">M2: Dreiklänge</button>
+    <button class="tab-btn" onclick="openTab(event, 'm3')">M3: Umkehrungen</button>
+    <button class="tab-btn" onclick="openTab(event, 'm4')">M4: 3- & 4-Klänge</button>
+    <button class="tab-btn" onclick="openTab(event, 'm5')">M5: Symbolik</button>
+    <button class="tab-btn" onclick="openTab(event, 'm6')">M6: Kadenzen</button>
+    <button class="tab-btn" onclick="openTab(event, 'quint')">Quintenzirkel</button>
+    <button class="tab-btn" onclick="openTab(event, 'quizzes')">Bereichs-Quizzes</button>
+    <button class="tab-btn" onclick="openTab(event, 'tutor')">KI-Tutor</button>
+</nav>
+
+<div class="container">
+
+    <!-- Startseite -->
+    <div id="home" class="tab-content active">
+        <h2>Willkommen zur Klausurvorbereitung Musik!</h2>
+        <p>Diese interaktive App bereitet dich umfassend auf Klausuren im Fach Musik (Sekundarstufe II) rund um das Thema <strong>Harmonielehre, Dreiklänge und Kadenzen</strong> vor[cite: 1].</p>
+        
+        <div class="card">
+            <h3>Features dieser App:</h3>
+            <ul>
+                <li><strong>Strukturierte Lernbereiche (M1–M6):</strong> Kompakt zusammengefasste Theorietexte[cite: 1].</li>
+                <li><strong>Audio-Ausgabe:</strong> Intervalle und Akkordtypen direkt im Browser anhören (Gehörbildung).</li>
+                <li><strong>Zahlreiche interaktive Mini-Übungen:</strong> Jedes Kapitel enthält direkte Testaufgaben mit Feedback.</li>
+                <li><strong>Interaktiver Quintenzirkel:</strong> Tonarten, Parallelen und Funktionen per Klick erkunden[cite: 8, 9].</li>
+                <li><strong>KI-Tutor-Modus:</strong> Zufällige Abfrage aller prüfungsrelevanten Themen.</li>
+            </ul>
+        </div>
+        <button class="action-btn" onclick="openTabByName('m1')">Mit M1: Intervalle starten</button>
+    </div>
+
+    <!-- Glossar -->
+    <div id="glossar" class="tab-content">
+        <h2>Glossar der Fachbegriffe</h2>
+        <p>Alle wichtigen Definitionen auf einen Blick:</p>
+        <table class="glossar-table">
+            <tr>
+                <th>Begriff</th>
+                <th>Definition / Bedeutung</th>
+            </tr>
+            <tr>
+                <td><strong>Dominante</strong></td>
+                <td>5. Stufe einer Tonleiter mit Hauptfunktion in der Kadenz, strebt zur Tonika[cite: 8, 11].</td>
+            </tr>
+            <tr>
+                <td><strong>Dreiklang</strong></td>
+                <td>Zusammenklang von drei Tönen im Terzaufbau (Grundton, Terz, Quinte)[cite: 3, 11]. Typen: Dur, Moll, vermindert, übermäßig[cite: 5, 11].</td>
+            </tr>
+            <tr>
+                <td><strong>Grundstellung</strong></td>
+                <td>Akkord in reiner Terzschichtung; unterster Ton ist der Grundton[cite: 4, 11].</td>
+            </tr>
+            <tr>
+                <td><strong>Kadenz</strong></td>
+                <td>Sinnvolle Akkordfolge mit Schlusswirkung (z. B. I - IV - V - I)[cite: 8, 11].</td>
+            </tr>
+            <tr>
+                <td><strong>Intervall</strong></td>
+                <td>Abstand zwischen zwei Tönen (konsonant oder dissonant)[cite: 1, 11].</td>
+            </tr>
+            <tr>
+                <td><strong>Subdominante</strong></td>
+                <td>4. Stufe einer Tonleiter mit Hauptfunktion in der Kadenz[cite: 8, 11].</td>
+            </tr>
+            <tr>
+                <td><strong>Tonika</strong></td>
+                <td>Dreiklang auf dem Grundton der Tonart; Ausgangs- und Endpunkt[cite: 8, 11].</td>
+            </tr>
+            <tr>
+                <td><strong>Umkehrung</strong></td>
+                <td>Umschichten von Intervallen oder Akkorden (Sextakkord, Quartsextakkord)[cite: 4, 11].</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- M1: Intervalle -->
+    <div id="m1" class="tab-content">
+        <h2>M1: Intervalle</h2>
+        <p>Der Abstand zwischen zwei Tönen wird als Intervall bezeichnet[cite: 1]. Unterscheidung in Grobbestimmung (Stufen) und Feinbestimmung (Halbtonschritte: rein, klein, groß, vermindert, übermäßig)[cite: 1].</p>
+        
+        <div class="card">
+            <h3>Hörbeispiele (Audio)</h3>
+            <button class="action-btn" onclick="playTone(261.63)">Prime (c')</button>
+            <button class="action-btn" onclick="playInterval(261.63, 311.13)">Kleine Terz (3 Halbtonschritte)</button>
+            <button class="action-btn" onclick="playInterval(261.63, 329.63)">Große Terz (4 Halbtonschritte)</button>
+            <button class="action-btn" onclick="playInterval(261.63, 392.00)">Reine Quinte (7 Halbtonschritte)</button>
+        </div>
+
+        <div class="card">
+            <h3>Mini-Übung 1.1: Halbtonschritte</h3>
+            <p>Wie viele Halbtonschritte hat eine <strong>große Terz</strong>?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m1-1')">3 Halbtonschritte</button>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'fb-m1-1')">4 Halbtonschritte</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m1-1')">5 Halbtonschritte</button>
+            <div id="fb-m1-1" class="feedback"></div>
+        </div>
+
+        <div class="card">
+            <h3>Mini-Übung 1.2: Intervall-Eigenschaften</h3>
+            <p>Welches dieser Intervalle gilt in der klassischen Harmonielehre als <strong>dissonant</strong>?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m1-2')">Reine Quinte</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m1-2')">Reine Oktave</button>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'fb-m1-2')">Kleine Sekunde</button>
+            <div id="fb-m1-2" class="feedback"></div>
+        </div>
+    </div>
+
+    <!-- M2: Dreiklänge -->
+    <div id="m2" class="tab-content">
+        <h2>M2: Dreiklänge</h2>
+        <p>Dreiklänge bestehen aus Grundton, Terz und Quinte im Terzaufbau[cite: 3]. Das Tongeschlecht wird durch die untere Terz bestimmt (Dur = große Terz unten; Moll = kleine Terz unten)[cite: 3].</p>
+
+        <div class="card">
+            <h3>Hörprobe: Dur vs. Moll</h3>
+            <button class="action-btn" onclick="playChord('major')">C-Dur Dreiklang anhören</button>
+            <button class="action-btn" onclick="playChord('minor')">c-Moll Dreiklang anhören</button>
+        </div>
+
+        <div class="card">
+            <h3>Mini-Übung 2.1: Tongeschlecht</h3>
+            <p>Welcher Dreiklang liegt vor, wenn die untere Terz 3 Halbtonschritte und die obere 4 Halbtonschritte umfasst?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m2-1')">Dur-Dreiklang</button>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'fb-m2-1')">Moll-Dreiklang</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m2-1')">Übermäßiger Dreiklang</button>
+            <div id="fb-m2-1" class="feedback"></div>
+        </div>
+
+        <div class="card">
+            <h3>Mini-Übung 2.2: Stufen in Dur</h3>
+            <p>Welche Tonstufe in einer Dur-Tonleiter bildet standardmäßig einen <strong>verminderten</strong> Dreiklang?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m2-2')">1. Stufe</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m2-2')">4. Stufe</button>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'fb-m2-2')">7. Stufe</button>
+            <div id="fb-m2-2" class="feedback"></div>
+        </div>
+    </div>
+
+    <!-- M3: Umkehrungen -->
+    <div id="m3" class="tab-content">
+        <h2>M3: Umkehrungen</h2>
+        <p>Durch Umschichten entstehen Stellungen: Grundstellung (Terzschichtung), 1. Umkehrung / Sextakkord (Terz unten), 2. Umkehrung / Quartsextakkord (Quinte unten)[cite: 4].</p>
+
+        <div class="card">
+            <h3>Mini-Übung 3.1: Umkehrungs-Namen</h3>
+            <p>Wie wird ein Dreiklang in der <strong>1. Umkehrung</strong> auch bezeichnet?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'fb-m3-1')">Sextakkord</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m3-1')">Quartsextakkord</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m3-1')">Septakkord</button>
+            <div id="fb-m3-1" class="feedback"></div>
+        </div>
+
+        <div class="card">
+            <h3>Mini-Übung 3.2: Bassnote bestimmen</h3>
+            <p>Welcher Ton bildet den Bass (den tiefsten Ton) bei einem Dreiklang in der <strong>2. Umkehrung</strong>?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m3-2')">Der Grundton</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m3-2')">Die Terz</button>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'fb-m3-2')">Die Quinte</button>
+            <div id="fb-m3-2" class="feedback"></div>
+        </div>
+    </div>
+
+    <!-- M4: Weitere Drei- und Vierklänge -->
+    <div id="m4" class="tab-content">
+        <h2>M4: Weitere Drei- und Vierklänge</h2>
+        <p>Übermäßige Dreiklänge (zwei große Terzen), verminderte Dreiklänge (zwei kleine Terzen) sowie Vierklänge mit hinzugefügter kleiner Septime ($C^7$) oder großer Sexte ($C^6$)[cite: 5].</p>
+
+        <div class="card">
+            <h3>Mini-Übung 4.1: Übermäßige Akkorde</h3>
+            <p>Aus welchen Intervallen setzt sich ein <strong>übermäßiger</strong> Dreiklang zusammen?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m4-1')">Zwei kleine Terzen</button>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'fb-m4-1')">Zwei große Terzen</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m4-1')">Eine große und eine kleine Terz</button>
+            <div id="fb-m4-1" class="feedback"></div>
+        </div>
+
+        <div class="card">
+            <h3>Mini-Übung 4.2: Vierklänge</h3>
+            <p>Welcher Zusatzton wird in der Pop- und Jazzmusik besonders häufig als Vierklang hinzugefügt, um mehr Spannung zu erzeugen?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'fb-m4-2')">Eine kleine Septime</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m4-2')">Eine reine Quinte</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m4-2')">Eine reingestimmte Prime</button>
+            <div id="fb-m4-2" class="feedback"></div>
+        </div>
+    </div>
+
+    <!-- M5: Akkord-Symbolik -->
+    <div id="m5" class="tab-content">
+        <h2>M5: Akkord-Symbolik</h2>
+        <p>Unterschiede zwischen deutscher und amerikanischer Schreibweise sowie Symbole für Sept- und Option-Akkorde (z.
