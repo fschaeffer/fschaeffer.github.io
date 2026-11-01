@@ -406,4 +406,249 @@
     <!-- M5: Akkord-Symbolik -->
     <div id="m5" class="tab-content">
         <h2>M5: Akkord-Symbolik</h2>
-        <p>Unterschiede zwischen deutscher und amerikanischer Schreibweise sowie Symbole für Sept- und Option-Akkorde (z.
+        <p>Unterschiede zwischen deutscher und amerikanischer Schreibweise sowie Symbole für Sept- und Option-Akkorde (z.B. $C^{maj7}$, $C^7$, $Cm$)[cite: 7].</p>
+
+        <div class="card">
+            <h3>Mini-Übung 5.1: Schreibweisen</h3>
+            <p>Wie wird ein C-Moll Akkord in der amerikanischen Standard-Popnotation meistens abgekürzt?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'fb-m5-1')">Cm</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m5-1')">C+</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m5-1')">Cmaj</button>
+            <div id="fb-m5-1" class="feedback"></div>
+        </div>
+    </div>
+
+    <!-- M6: Kadenzen -->
+    <div id="m6" class="tab-content">
+        <h2>M6: Kadenzen & Funktionsweise</h2>
+        <p>Kadenz = Akkordfolge mit Schlusswirkung[cite: 8, 11]. Hauptfunktionen: Tonika (I), Subdominante (IV), Dominante (V)[cite: 8, 11]. Inklusive Nebenfunktionen als Parallelen (Tp, Sp, Dp)[cite: 8, 10].</p>
+
+        <div class="card">
+            <h3>Mini-Übung 6.1: Hauptfunktionen</h3>
+            <p>Welche harmonische Hauptfunktion repräsentiert die <strong>5. Stufe</strong> (V) in einer Kadenz?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m6-1')">Tonika</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m6-1')">Subdominante</button>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'fb-m6-1')">Dominante</button>
+            <div id="fb-m6-1" class="feedback"></div>
+        </div>
+
+        <div class="card">
+            <h3>Mini-Übung 6.2: Nebenfunktionen</h3>
+            <p>Wo liegt bei Dur-Tonarten die Tonikaparallele (Tp) im Verhältnis zur Tonika?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'fb-m6-2')">Eine kleine Terz unter der Tonika</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m6-2')">Eine reine Quinte über der Tonika</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'fb-m6-2')">Eine große Sekunde über der Tonika</button>
+            <div id="fb-m6-2" class="feedback"></div>
+        </div>
+    </div>
+
+    <!-- Quintenzirkel -->
+    <div id="quint" class="tab-content">
+        <h2>Interaktiver Quintenzirkel</h2>
+        <p>Klicke auf eine Tonart, um Details anzuzeigen[cite: 9]:</p>
+        <div class="quint-grid">
+            <div class="quint-card" onclick="showQuintInfo('C-Dur', '0 Vorzeichen', 'Tonika: C | Subdominante: F | Dominante: G')"><strong>C-Dur</strong><br><small>0 Vorzeichen</small></div>
+            <div class="quint-card" onclick="showQuintInfo('G-Dur', '1 Kreuz (fis)', 'Tonika: G | Subdominante: C | Dominante: D')"><strong>G-Dur</strong><br><small>1 Kreuz</small></div>
+            <div class="quint-card" onclick="showQuintInfo('D-Dur', '2 Kreuze', 'Tonika: D | Subdominante: G | Dominante: A')"><strong>D-Dur</strong><br><small>2 Kreuze</small></div>
+            <div class="quint-card" onclick="showQuintInfo('A-Dur', '3 Kreuze', 'Tonika: A | Subdominante: D | Dominante: E')"><strong>A-Dur</strong><br><small>3 Kreuze</small></div>
+            <div class="quint-card" onclick="showQuintInfo('F-Dur', '1 B (b)', 'Tonika: F | Subdominante: B | Dominante: C')"><strong>F-Dur</strong><br><small>1 B</small></div>
+            <div class="quint-card" onclick="showQuintInfo('B-Dur', '2 Bs', 'Tonika: B | Subdominante: Es | Dominante: F')"><strong>B-Dur</strong><br><small>2 Bs</small></div>
+        </div>
+        <div id="quint-display" class="card" style="margin-top: 20px; display:none;">
+            <h3 id="q-title"></h3>
+            <p id="q-text"></p>
+        </div>
+    </div>
+
+    <!-- Bereichs-Quizzes -->
+    <div id="quizzes" class="tab-content">
+        <h2>Klausur-Abschlusstest</h2>
+        <p>Hier wird dein gesamtes Wissen kapitelübergreifend geprüft:</p>
+        
+        <div class="card">
+            <h3>Abschlussfrage 1</h3>
+            <p>Welcher Akkord entsteht, wenn man über einem Dur-Grundton eine kleine Septime schichtet?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'aq1-fb')">Dominantseptakkord ($C^7$)</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'aq1-fb')">Verminderter Dreiklang</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'aq1-fb')">Quartsextakkord</button>
+            <div id="aq1-fb" class="feedback"></div>
+        </div>
+
+        <div class="card">
+            <h3>Abschlussfrage 2</h3>
+            <p>Welche Akkordfolge beschreibt die klassische Grundkadenz?</p>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'aq2-fb')">Tonika - Dominante - Subdominante</button>
+            <button class="quiz-option" onclick="checkAnswer(this, true, 'aq2-fb')">Tonika - Subdominante - Dominante - Tonika</button>
+            <button class="quiz-option" onclick="checkAnswer(this, false, 'aq2-fb')">Tonika - Parallele - Vermindert</button>
+            <div id="aq2-fb" class="feedback"></div>
+        </div>
+    </div>
+
+    <!-- Tutor-App -->
+    <div id="tutor" class="tab-content">
+        <h2>Interaktiver KI-Tutor</h2>
+        <p>Der Tutor generiert zufällige Prüfungsfragen zur optimalen Vorbereitung.</p>
+        
+        <div class="card" id="tutor-box">
+            <h3 id="tutor-question">Klicke auf den Button, um die Abfrage zu starten!</h3>
+            <div id="tutor-options"></div>
+            <div id="tutor-feedback" class="feedback"></div>
+        </div>
+        <button class="action-btn" onclick="nextTutorQuestion()">Nächste Frage generieren</button>
+    </div>
+
+</div>
+
+<script>
+    // Einzige, zentrale Funktion für den Reiterwechsel
+    function openTab(evt, tabName) {
+        let contents = document.getElementsByClassName("tab-content");
+        for (let c of contents) { 
+            c.classList.remove("active"); 
+        }
+        let buttons = document.getElementsByClassName("tab-btn");
+        for (let b of buttons) { 
+            b.classList.remove("active"); 
+        }
+        document.getElementById(tabName).classList.add("active");
+        
+        // Falls das Event von einem echten Button kommt, diesen aktiv schalten
+        if (evt && evt.currentTarget) {
+            evt.currentTarget.classList.add("active");
+        } else {
+            // Falls per Direktaufruf (z.B. Startseiten-Button), den passenden Nav-Button aktivieren
+            for (let b of buttons) {
+                if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + tabName + "'")) {
+                    b.classList.add("active");
+                }
+            }
+        }
+    }
+
+    function openTabByName(tabName) {
+        openTab(null, tabName);
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    function checkAnswer(button, isCorrect, feedbackId) {
+        let parent = button.parentElement;
+        let options = parent.getElementsByClassName('quiz-option');
+        for (let opt of options) {
+            opt.style.pointerEvents = 'none';
+            if(opt === button) {
+                opt.classList.add(isCorrect ? 'correct' : 'incorrect');
+            }
+        }
+        let fb = document.getElementById(feedbackId);
+        fb.innerHTML = isCorrect ? "Richtig! Ausgezeichnet." : "Leider falsch. Sieh dir den Theorieteil dazu noch einmal an.";
+        fb.style.color = isCorrect ? "#27ae60" : "#c0392b";
+    }
+
+    function showQuintInfo(title, subtitle, details) {
+        let display = document.getElementById('quint-display');
+        display.style.display = 'block';
+        document.getElementById('q-title').innerText = title + " (" + subtitle + ")";
+        document.getElementById('q-text').innerText = details;
+    }
+
+    let audioCtx = null;
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playTone(freq) {
+        initAudio();
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        let now = audioCtx.currentTime;
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+        osc.start(now);
+        osc.stop(now + 1.0);
+    }
+
+    function playInterval(f1, f2) {
+        initAudio();
+        playTone(f1);
+        setTimeout(() => playTone(f2), 300);
+    }
+
+    function playChord(type) {
+        initAudio();
+        let freqs = type === 'major' ? [261.63, 329.63, 392.00] : [261.63, 311.13, 392.00];
+        freqs.forEach(f => {
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = f;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            let now = audioCtx.currentTime;
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+            osc.start(now);
+            osc.stop(now + 1.5);
+        });
+    }
+
+    const tutorPool = [
+        {
+            q: "Wie viele Halbtonschritte umfasst eine große Terz?",
+            options: ["3 Halbtonschritte", "4 Halbtonschritte", "5 Halbtonschritte"],
+            correct: 1
+        },
+        {
+            q: "Welche Hauptfunktion hat die 4. Stufe in einer Dur-Kadenz?",
+            options: ["Tonika", "Subdominante", "Dominante"],
+            correct: 1
+        },
+        {
+            q: "Wie wird ein Dreiklang der 2. Umkehrung genannt?",
+            options: ["Sextakkord", "Quartsextakkord", "Septakkord"],
+            correct: 1
+        },
+        {
+            q: "Welcher Akkordtyp besteht aus zwei übereinanderliegenden kleinen Terzen?",
+            options: ["Verminderter Dreiklang", "Übermäßiger Dreiklang", "Dur-Dreiklang"],
+            correct: 0
+        }
+    ];
+
+    function nextTutorQuestion() {
+        let randomIndex = Math.floor(Math.random() * tutorPool.length);
+        let item = tutorPool[randomIndex];
+        document.getElementById('tutor-question').innerText = item.q;
+        let optContainer = document.getElementById('tutor-options');
+        optContainer.innerHTML = "";
+        document.getElementById('tutor-feedback').innerHTML = "";
+
+        item.options.forEach((optText, idx) => {
+            let btn = document.createElement('button');
+            btn.className = 'quiz-option';
+            btn.innerText = optText;
+            btn.onclick = function() {
+                let allBtns = optContainer.getElementsByClassName('quiz-option');
+                for(let b of allBtns) { b.style.pointerEvents = 'none'; }
+                if(idx === item.correct) {
+                    btn.classList.add('correct');
+                    document.getElementById('tutor-feedback').innerHTML = "Richtig gelöst!";
+                    document.getElementById('tutor-feedback').style.color = "#27ae60";
+                } else {
+                    btn.classList.add('incorrect');
+                    allBtns[item.correct].classList.add('correct');
+                    document.getElementById('tutor-feedback').innerHTML = "Falsch. Die richtige Antwort ist grün markiert.";
+                    document.getElementById('tutor-feedback').style.color = "#c0392b";
+                }
+            };
+            optContainer.appendChild(btn);
+        });
+    }
+</script>
+
+</body>
+</html>
